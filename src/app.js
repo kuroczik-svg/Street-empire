@@ -803,7 +803,7 @@ function renderSettings() {
         <input id="ww" class="input" data-field="wakeWord" value="${esc(settings.wakeWord)}" maxlength="20" />
       </div>
       <label class="switch"><span><b>Vor dem Buchen bestätigen</b><br><span class="small muted">Jede vollständige Aufnahme erst nach Tippen auf „Buchen“ übernehmen</span></span><input type="checkbox" data-field="confirmBeforeCommit" ${settings.confirmBeforeCommit ? 'checked' : ''} /></label>
-      <label class="switch"><span><b>Männerrunde</b><br><span class="small muted">Erlaubt Sprüche wie „Der Mann kann tatsächlich Dart spielen!“</span></span><input type="checkbox" data-field="maleWordingOk" ${settings.maleWordingOk ? 'checked' : ''} /></label>
+      <label class="switch"><span><b>Männerrunde</b><br><span class="small muted">Erlaubt Sprüche wie „Der Mann kann tatsächlich Dart spielen!“ (standardmäßig an)</span></span><input type="checkbox" data-field="maleWordingOk" ${settings.maleWordingOk ? 'checked' : ''} /></label>
       <label class="switch"><span><b>Checkout-Wege anzeigen</b></span><input type="checkbox" data-field="showCheckout" ${settings.showCheckout ? 'checked' : ''} /></label>
       ${speechIn.supported ? '' : '<p class="notice">Dieser Browser bietet keine Spracherkennung. Am besten funktioniert Chrome (Android/Desktop) oder Safari (iOS). Die manuelle Eingabe geht immer – auch offline.</p>'}
     </section>

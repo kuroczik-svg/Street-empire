@@ -73,7 +73,7 @@ Leistungsstufen und Kontextbedingungen. Regeln: `data/README-kommentarbibliothek
 - `turn_start` = Aufruf des nächsten Spielers (nennt ihn immer beim Namen), `invalid_input` = Spruch bei
   zu vielen Pfeilen/unklarer Ansage (ändert nie Punkte oder Spieler), `correction` = nach einer Korrektur
   (erst nach der Neuberechnung)
-- `maleWordingOk` → Einstellung „Männerrunde“ (aus = solche Sprüche kommen nicht)
+- `maleWordingOk` → Einstellung „Männerrunde“ (standardmäßig an; aus = solche Sprüche kommen nicht)
 - Zusatzregel der App: „die anderen beiden“ nur bei genau 3 Spielern
 - Spruch-Historie wird mit dem Spiel gespeichert (keine Wiederholung nach dem Neuladen)
 - fehlt die Datei, läuft das Spiel mit den Grund-Sprüchen aus `src/jokes.js` weiter

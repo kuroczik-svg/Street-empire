@@ -26,7 +26,8 @@ export const DEFAULT_SETTINGS = Object.freeze({
   wakeWord: 'buddy',
   confirmBeforeCommit: false,
   showCheckout: true,
-  maleWordingOk: false, // Sprüche wie „Der Mann kann tatsächlich Dart spielen!“
+  maleWordingOk: true, // „Männerrunde“: Sprüche wie „Der Mann kann tatsächlich Dart spielen!“
+  settingsVersion: 2,
 });
 
 const MAX_HISTORY = 300;
@@ -69,7 +70,12 @@ export function createStore(storage) {
   };
 
   return {
-    loadSettings: () => ({ ...DEFAULT_SETTINGS, ...read(KEYS.settings, {}) }),
+    loadSettings: () => {
+      const saved = { ...read(KEYS.settings, {}) };
+      // v2: „Männerrunde“ ist jetzt standardmäßig an – alten gespeicherten Standardwert einmalig übernehmen
+      if ((saved.settingsVersion || 1) < 2) delete saved.maleWordingOk;
+      return { ...DEFAULT_SETTINGS, ...saved, settingsVersion: DEFAULT_SETTINGS.settingsVersion };
+    },
     saveSettings: (v) => write(KEYS.settings, v),
 
     loadCurrentGame: () => read(KEYS.current, null),

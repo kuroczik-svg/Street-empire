@@ -50,3 +50,17 @@ test('Profile werden per Name gefunden', () => {
   assert.equal(profiles.length, 1);
   assert.equal(b.nickname, 'Die Maschine');
 });
+
+test('Männerrunde ist standardmäßig an – auch nach Update alter Einstellungen; eigene Wahl bleibt danach erhalten', () => {
+  const m = memory();
+  const s = createStore(m);
+  assert.equal(s.loadSettings().maleWordingOk, true);
+  // alte Einstellungen (vor v2) mit gespeichertem false
+  m.setItem('dartbuddy.settings.v1', JSON.stringify({ humor: 'gnadenlos', maleWordingOk: false }));
+  const migrated = s.loadSettings();
+  assert.equal(migrated.maleWordingOk, true);
+  assert.equal(migrated.humor, 'gnadenlos');
+  // bewusst ausgeschaltet (v2) → bleibt aus
+  s.saveSettings({ ...migrated, maleWordingOk: false });
+  assert.equal(s.loadSettings().maleWordingOk, false);
+});
