@@ -12,6 +12,7 @@ import { GameSession } from './session.js';
 import { Commentator, HUMOR_LEVELS, HUMOR_LABELS, formatRoute } from './commentator.js';
 import { createSpeechOut, createSpeechIn, VOICE_STYLES } from './speech.js';
 import { createStore, ensureProfile, aggregateStats } from './storage.js';
+import { createJokesScreen } from './jokesScreen.js';
 
 const $app = document.getElementById('app');
 const $modal = document.getElementById('modal');
@@ -74,7 +75,7 @@ function modal(html, { onOpen } = {}) {
 async function confirmDialog(title, text, { ok = 'Ja', cancel = 'Abbrechen', danger = false } = {}) {
   const r = await modal(`
     <h2>${esc(title)}</h2>
-    ${text ? `<p class="muted">${esc(text)}</p>` : ''}
+    ${text ? `<p class="muted" style="white-space:pre-line">${esc(text)}</p>` : ''}
     <div class="modal-actions">
       <button class="btn" value="cancel">${esc(cancel)}</button>
       <button class="btn ${danger ? 'danger' : 'primary'}" value="ok">${esc(ok)}</button>
@@ -106,6 +107,19 @@ function persist() {
 function speak(parts, energy = 1) {
   return speechOut.speak(parts, { energy });
 }
+
+// ------------------------------------------------------------ Sprüche-Bibliothek
+const jokesScreen = createJokesScreen({
+  store,
+  commentator,
+  speak: (parts, energy) => speak(parts, energy),
+  toast,
+  confirmDialog,
+  modal,
+  esc,
+  rerender: () => render(),
+  getHumor: () => settings.humor,
+});
 
 // ------------------------------------------------------------ Sprache
 const speechIn = createSpeechIn({
@@ -791,6 +805,11 @@ function renderSettings() {
       ${speechIn.supported ? '' : '<p class="notice">Dieser Browser bietet keine Spracherkennung. Am besten funktioniert Chrome (Android/Desktop) oder Safari (iOS). Die manuelle Eingabe geht immer – auch offline.</p>'}
     </section>
     <section class="card">
+      <h2>Sprüche</h2>
+      <p class="small muted">Eigene Sprüche hinzufügen, eingebaute ausblenden, alles sichern und mit den Kumpels teilen.</p>
+      <button class="btn" data-action="nav" data-screen="jokes">💬 Sprüche-Bibliothek öffnen</button>
+    </section>
+    <section class="card">
       <h2>Daten</h2>
       <p class="small muted">Alles wird nur lokal auf diesem Gerät gespeichert. Punkteberechnung und manuelle Eingabe funktionieren auch offline.</p>
       <button class="btn danger" data-action="clear-all">Alle Daten löschen</button>
@@ -812,7 +831,8 @@ function renderHome() {
     <p></p>
     <div class="actionbar" style="grid-template-columns:1fr 1fr">
       <button class="btn" data-action="nav" data-screen="stats">📊 Statistik</button>
-      <button class="btn" data-action="nav" data-screen="settings">⚙️ Einstellungen</button>
+      <button class="btn" data-action="nav" data-screen="jokes">💬 Sprüche</button>
+      <button class="btn" data-action="nav" data-screen="settings" style="grid-column:1/-1">⚙️ Einstellungen</button>
     </div>
     ${!speechIn.supported ? '<p class="notice" style="margin-top:14px">Hinweis: Dieser Browser hat keine Spracherkennung. Du kannst trotzdem alles per Tasten eingeben.</p>' : ''}`;
 }
@@ -823,6 +843,7 @@ function render() {
   else if (screen === 'history') renderHistory();
   else if (screen === 'stats') renderStats();
   else if (screen === 'settings') renderSettings();
+  else if (screen === 'jokes') jokesScreen.render($app);
   else {
     screen = 'home';
     renderHome();
@@ -837,10 +858,12 @@ async function onClick(e) {
   if (btn.closest('dialog')) return;
   const a = btn.dataset.action;
   const v = btn.dataset.v;
+  if (screen === 'jokes' && (await jokesScreen.onClick(a, btn))) return;
 
   switch (a) {
     case 'nav':
-      if (btn.dataset.screen === 'home' && session && !session.state.finished) screen = 'game';
+      if (btn.dataset.screen === 'back') screen = session && !session.state.finished ? 'game' : 'home';
+      else if (btn.dataset.screen === 'home' && session && !session.state.finished) screen = 'game';
       else screen = btn.dataset.screen;
       if (screen === 'game' && !session) screen = 'home';
       return render();
@@ -1044,11 +1067,12 @@ async function onClick(e) {
       speak(['Hundert Punkte, Wowa!', 'Alter, wer hat dir denn heimlich Zielwasser gegeben?', 'Noch 87!'], 3);
       return;
     case 'clear-all':
-      if (await confirmDialog('Wirklich ALLE Daten löschen?', 'Laufendes Spiel, Historie, Profile und Einstellungen werden gelöscht.', { ok: 'Alles löschen', danger: true })) {
+      if (await confirmDialog('Wirklich ALLE Daten löschen?', 'Laufendes Spiel, Historie, Profile, eigene Sprüche und Einstellungen werden gelöscht.', { ok: 'Alles löschen', danger: true })) {
         store.clearAll();
         settings = store.loadSettings();
         profiles = [];
         session = null;
+        jokesScreen.reset();
         applySettings();
         screen = 'home';
         render();
@@ -1078,6 +1102,7 @@ function onInput(e) {
   const el = e.target;
   const f = el.dataset.field;
   if (!f) return;
+  if (screen === 'jokes' && jokesScreen.onInput(el)) return;
   if (screen === 'setup' && setup) {
     if (f === 'name' || f === 'nickname') {
       const p = setup.players[Number(el.dataset.i)];
@@ -1122,9 +1147,11 @@ function onInput(e) {
 }
 
 document.addEventListener('click', onClick);
-document.addEventListener('input', onInput);
+document.addEventListener('input', (e) => {
+  if (e.target.type !== 'file') onInput(e);
+});
 document.addEventListener('change', (e) => {
-  if (e.target.type === 'checkbox') onInput(e);
+  if (e.target.type === 'checkbox' || e.target.type === 'file') onInput(e);
 });
 
 // Tastatur-Kurzbefehle für Tablet/Desktop

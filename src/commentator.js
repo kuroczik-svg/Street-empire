@@ -29,6 +29,7 @@ export const LEVEL_POOLS = {
 };
 const PRIMARY_WEIGHT = 0.6; // Chance für den Haupttopf
 const SITUATION_WEIGHT = 0.65; // Chance für einen passenden Situations-Spruch
+const CUSTOM_WEIGHT = 0.35; // eigene Sprüche der Spieler kommen etwas häufiger
 
 const REST_CALLS = ['Noch {rest}!', 'Rest {rest}!', 'Bleiben {rest}!', 'Noch {rest} übrig!'];
 
@@ -201,12 +202,18 @@ export function jokeCandidates(table, humor, ctx) {
  * Der Kommentator. Merkt sich bereits benutzte Sprüche, um Wiederholungen zu vermeiden.
  */
 export class Commentator {
-  constructor({ humor = 'frech', rng = Math.random, memorySize = 80 } = {}) {
+  constructor({ humor = 'frech', rng = Math.random, memorySize = 80, library } = {}) {
     this.humor = HUMOR_LEVELS.includes(humor) ? humor : 'frech';
+    this.lib = library || { JOKES, EXTRAS, NEXT_CALLS, CORRECTION };
     this.rng = rng;
     this.memorySize = memorySize;
     this.recent = [];
     this.lastRestCall = -1;
+  }
+
+  /** Tauscht die Spruch-Bibliothek aus (z. B. mit eigenen Sprüchen aus der App). */
+  setLibrary(lib) {
+    this.lib = lib;
   }
 
   setHumor(h) {
@@ -240,10 +247,12 @@ export class Commentator {
       if (!fresh.length) fresh = all;
     }
     const situational = fresh.filter((c) => typeof c.e === 'object' && c.e.when);
+    const own = fresh.filter((c) => typeof c.e === 'object' && c.e.custom);
     const primaryKey = LEVEL_POOLS[this.humor][0];
     const primary = fresh.filter((c) => c.pool === primaryKey);
     let source = fresh;
-    if (situational.length && this.rng() < SITUATION_WEIGHT) source = situational;
+    if (own.length && this.rng() < CUSTOM_WEIGHT) source = own;
+    else if (situational.length && this.rng() < SITUATION_WEIGHT) source = situational;
     else if (primary.length && this.rng() < PRIMARY_WEIGHT) source = primary;
     const chosen = this.pick(source).e;
     this.remember(entryText(chosen));
@@ -270,7 +279,7 @@ export class Commentator {
 
   /** Kurzer Spruch nach einer Korrektur (z. B. vertauschte Spieler). */
   correctionQuip() {
-    return this.pickJoke(CORRECTION, { points: 0, playerCount: 0 }) || 'Korrigiert!';
+    return this.pickJoke(this.lib.CORRECTION, { points: 0, playerCount: 0 }) || 'Korrigiert!';
   }
 
   /**
@@ -298,7 +307,7 @@ export class Commentator {
     };
     const parts = [];
     const cat = ctx.category;
-    const joke = this.pickEntry(JOKES[cat], ctx);
+    const joke = this.pickEntry(this.lib.JOKES[cat], ctx);
     const jokeText = joke ? fill(entryText(joke), vars) : '';
     const jokeIsHeadline = !!(joke && typeof joke === 'object' && joke.headline);
 
@@ -341,26 +350,26 @@ export class Commentator {
         const t = this.pickJoke(table, ctx);
         return t ? fill(t, v) : null;
       };
-      if (ctx.leaderChange) extra = take(EXTRAS.leaderChange, { ...vars, prev: ctx.prevLeader.name });
-      if (!extra && ctx.rivalBust) extra = take(EXTRAS.rivalBust);
-      if (!extra && ctx.rivalLow) extra = take(EXTRAS.rivalLow);
-      if (!extra && ctx.comeback) extra = take(EXTRAS.comeback);
+      if (ctx.leaderChange) extra = take(this.lib.EXTRAS.leaderChange, { ...vars, prev: ctx.prevLeader.name });
+      if (!extra && ctx.rivalBust) extra = take(this.lib.EXTRAS.rivalBust);
+      if (!extra && ctx.rivalLow) extra = take(this.lib.EXTRAS.rivalLow);
+      if (!extra && ctx.comeback) extra = take(this.lib.EXTRAS.comeback);
       if (!extra && ctx.close) {
-        const tpl = take(EXTRAS.close);
+        const tpl = take(this.lib.EXTRAS.close);
         const factual = ctx.close.diff === 0
           ? `Gleichstand zwischen ${ctx.close.a} und ${ctx.close.b}!`
           : `Nur ${ctx.close.diff} Punkte zwischen ${ctx.close.a} und ${ctx.close.b}!`;
         extra = tpl ? `${tpl} ${factual}` : factual;
       }
-      if (!extra && ctx.finishRange) extra = take(EXTRAS.finishRange);
-      if (!extra && ctx.oneDart) extra = take(EXTRAS.oneDart);
-      if (!extra && ctx.lastPlace && this.rng() < 0.5) extra = take(EXTRAS.lastPlace);
+      if (!extra && ctx.finishRange) extra = take(this.lib.EXTRAS.finishRange);
+      if (!extra && ctx.oneDart) extra = take(this.lib.EXTRAS.oneDart);
+      if (!extra && ctx.lastPlace && this.rng() < 0.5) extra = take(this.lib.EXTRAS.lastPlace);
       if (extra && extra.trim()) parts.push(extra.trim());
     }
 
     // 5. Nächster Spieler
     if (ctx.next && cat !== 'win') {
-      const call = this.pickJoke(NEXT_CALLS, ctx) || '{next}, du bist dran!';
+      const call = this.pickJoke(this.lib.NEXT_CALLS, ctx) || '{next}, du bist dran!';
       parts.push(fill(call, vars));
     }
 

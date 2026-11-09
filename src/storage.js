@@ -11,6 +11,8 @@ const KEYS = {
   history: 'dartbuddy.history.v1',
   profiles: 'dartbuddy.profiles.v1',
   settings: 'dartbuddy.settings.v1',
+  customJokes: 'dartbuddy.jokes.custom.v1',
+  hiddenJokes: 'dartbuddy.jokes.hidden.v1',
 };
 
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -98,6 +100,11 @@ export function createStore(storage) {
       write(KEYS.history, read(KEYS.history, []).filter((g) => g.id !== id));
     },
     clearHistory: () => write(KEYS.history, []),
+
+    loadCustomJokes: () => read(KEYS.customJokes, []),
+    saveCustomJokes: (list) => write(KEYS.customJokes, list),
+    loadHiddenJokes: () => read(KEYS.hiddenJokes, []),
+    saveHiddenJokes: (list) => write(KEYS.hiddenJokes, list),
 
     loadProfiles: () => read(KEYS.profiles, []),
     saveProfiles: (p) => write(KEYS.profiles, p),

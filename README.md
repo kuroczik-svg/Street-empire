@@ -7,7 +7,7 @@ Eine deutschsprachige, mobiloptimierte Dart-App (PWA), die als humorvoller Spiel
 
 ```bash
 npm start          # http://localhost:8080  (keine Abhängigkeiten nötig, Node ≥ 18)
-npm test           # 115 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
+npm test           # 127 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
 ```
 
 Optionaler Browser-Abnahmetest (Playwright + Chromium, simulierte Spracherkennung):
@@ -44,8 +44,22 @@ funktionieren immer – auch offline** (Service Worker).
 
 ## Sprüche & Humor-Stufen
 
-Alle Sprüche stehen in **`src/jokes.js`** – neue einfach in den passenden Topf eintragen
-(Format und Platzhalter sind dort oben beschrieben).
+**Die Bibliothek ist offen erweiterbar – direkt in der App:** 💬 *Sprüche-Bibliothek* (Kopfzeile,
+Startseite oder Einstellungen):
+
+- eigene Sprüche anlegen, bearbeiten, pausieren, löschen – mit Platzhaltern
+  `[Name] [NAME] [Punkte] [Rest] [Nächster] [Führender] [Entthront]`, Live-Vorschau und „Probe hören“
+- Situation wählen (Katastrophe 0–25, Mittel 26–59, Gut 60–99, Überragend 100–179, 180, Bust, Sieg,
+  Finish-Bereich, Führungswechsel, Aufruf des Nächsten, Korrektur), Humor-Stufe und Spielerzahl
+- **mehrere auf einmal einfügen** – auch direkt als Tabelle aus dem Chat; Nummern, Anführungszeichen
+  und fehlende Namen („Meine Fresse, !“) werden automatisch bereinigt
+- eingebaute Sprüche ausblenden
+- **sichern & teilen** als JSON-Datei (Import überspringt Duplikate)
+
+Eigene Sprüche werden getrennt gespeichert (bleiben bei App-Updates erhalten) und kommen etwas häufiger dran.
+Regeln werden geprüft: 180er-Sprüche nur unter „Die 180“, „die beiden“ → nur bei 3 Spielern, Aufrufe
+nennen immer den nächsten Spieler, Zahlen setzt die App ein. Logik: `src/library.js`, Oberfläche:
+`src/jokesScreen.js`. Die eingebauten Sprüche stehen in `src/jokes.js`.
 
 | Humor-Stufe | Inhalt |
 |---|---|
