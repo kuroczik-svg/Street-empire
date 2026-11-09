@@ -7,7 +7,7 @@ Eine deutschsprachige, mobiloptimierte Dart-App (PWA), die als humorvoller Spiel
 
 ```bash
 npm start          # http://localhost:8080  (keine Abhängigkeiten nötig, Node ≥ 18)
-npm test           # 90 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
+npm test           # 115 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
 ```
 
 Optionaler Browser-Abnahmetest (Playwright + Chromium, simulierte Spracherkennung):
@@ -41,6 +41,22 @@ funktionieren immer – auch offline** (Service Worker).
 | `src/speech.js` | Sprachausgabe (Betonung je nach Energie, Stimmenwahl, Stile) und Spracherkennung (Knopf / Aktivierungswort; hört beim eigenen Sprechen nicht zu). |
 | `src/storage.js` | Persistenz (localStorage), Historie, Profile, Siegerstatistik. |
 | `src/app.js` | Oberfläche. |
+
+## Sprüche & Humor-Stufen
+
+Alle Sprüche stehen in **`src/jokes.js`** – neue einfach in den passenden Topf eintragen
+(Format und Platzhalter sind dort oben beschrieben).
+
+| Humor-Stufe | Inhalt |
+|---|---|
+| 😊 Freundlich – lockere Witze | Grundstock „f“ |
+| 😏 Frech – ordentliche Sticheleien | „c“ + **Kumpel-Sammlung** (31 Sprüche vom Dartabend mit Markus, Lukas und Wowa) |
+| 😈 Gnadenlos – FSK-16-Dartabend | **FSK-16-Edition** (50 Sprüche, derb, mit Schimpfwörtern) + Kumpel-Sammlung + Grundstock |
+
+Der Kommentator wählt nach Punktzahl, Spielstand, Vorgeschichte und den zuletzt gesagten Sprüchen:
+z. B. „Vorhin 170 Punkte rausgehauen …“, „Der dritte Pfeil war wohl ein Warnschuss …“ (nur wenn genau der
+dritte Pfeil daneben ging), Reaktionen auf Gegner („… während Lukas nur noch 32 braucht“), Sprüche mit
+„die anderen beiden“ nur bei genau drei Spielern, 180er-Sprüche ausschließlich bei einer echten 180.
 
 ## Fehlervermeidung (Auswahl)
 

@@ -21,6 +21,7 @@ export class GameSession {
     this.commentator = commentator || new Commentator();
     this.confirmBeforeCommit = confirmBeforeCommit;
     this.lastAnnouncement = null;
+    this.hadQuestion = false; // musste bei der laufenden Aufnahme nachgefragt werden?
   }
 
   get state() {
@@ -41,6 +42,7 @@ export class GameSession {
     if (this.state.finished) return { action: 'ignore', message: 'Das Spiel ist vorbei – starte eine Revanche!' };
     const r = handleTextInput(this.game, this.pending, text);
     this.candidate = null;
+    if (['ask', 'confirm', 'wait'].includes(r.action)) this.hadQuestion = true;
     switch (r.action) {
       case 'undo':
         return this.undo();
@@ -92,6 +94,7 @@ export class GameSession {
 
   clearPending() {
     this.pending = [];
+    this.hadQuestion = false;
     this.candidate = null;
     this.awaitingCommit = false;
   }
@@ -123,7 +126,8 @@ export class GameSession {
     this.pending = [];
     this.candidate = null;
     this.awaitingCommit = false;
-    const ctx = buildContext(before, after, result, game.config);
+    const ctx = buildContext(before, after, result, game.config, { hadQuestion: this.hadQuestion });
+    this.hadQuestion = false;
     const announcement = this.commentator.comment(ctx);
     this.lastAnnouncement = announcement;
     return { action: 'committed', result, announcement, context: ctx, finished: after.finished };

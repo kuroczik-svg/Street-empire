@@ -9,7 +9,7 @@ import {
 } from './engine.js';
 import { parseThrowInput } from './parser.js';
 import { GameSession } from './session.js';
-import { Commentator, HUMOR_LEVELS, formatRoute } from './commentator.js';
+import { Commentator, HUMOR_LEVELS, HUMOR_LABELS, formatRoute } from './commentator.js';
 import { createSpeechOut, createSpeechIn, VOICE_STYLES } from './speech.js';
 import { createStore, ensureProfile, aggregateStats } from './storage.js';
 
@@ -668,6 +668,7 @@ async function editTurnDialog(eventId) {
     if (r.applied) {
       persist();
       toast('Spieler getauscht – Stand neu berechnet.');
+      speak([commentator.correctionQuip()], 2);
     }
     return render();
   }
@@ -695,6 +696,7 @@ async function editTurnDialog(eventId) {
   if (r.applied) {
     persist();
     toast('Korrigiert – Spielstand komplett neu berechnet.');
+    speak([commentator.correctionQuip()], 2);
   }
   render();
 }
@@ -752,7 +754,8 @@ function renderSettings() {
     <h1>Einstellungen</h1>
     <section class="card">
       <div class="setting-block"><span class="lbl">Humor-Stufe</span>
-        <div class="chips">${HUMOR_LEVELS.map((h) => `<button class="chip" data-action="humor" data-v="${h}" aria-pressed="${settings.humor === h}">${{ freundlich: '😊 Freundlich', frech: '😏 Frech', gnadenlos: '😈 Gnadenlos' }[h]}</button>`).join('')}</div>
+        <div class="chips">${HUMOR_LEVELS.map((h) => `<button class="chip" data-action="humor" data-v="${h}" aria-pressed="${settings.humor === h}">${{ freundlich: '😊', frech: '😏', gnadenlos: '😈' }[h]} ${esc(HUMOR_LABELS[h])}</button>`).join('')}</div>
+        ${settings.humor === 'gnadenlos' ? '<p class="small muted" style="margin:8px 0 0">FSK 16: derbe Sprüche, Sarkasmus und gelegentlich Schimpfwörter – für den Dartabend unter Kumpels.</p>' : ''}
       </div>
       <div class="setting-block">
         <label class="switch"><span><b>Sprachausgabe</b><br><span class="small muted">Sprüche und Spielstand laut ansagen</span></span><input type="checkbox" data-field="speechOn" ${settings.speechOn ? 'checked' : ''} /></label>

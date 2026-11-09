@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { Commentator, classifyTurn, JOKES, HUMOR_LEVELS, shoutName, buildContext } from '../src/commentator.js';
+import { Commentator, classifyTurn, JOKES, HUMOR_LEVELS, shoutName, buildContext, jokeCandidates } from '../src/commentator.js';
 import { createGame, addTurn, dart } from '../src/engine.js';
 
 export const FORBIDDEN = [/ich rechne/i, /einen moment/i, /ich prüfe/i, /ich berechne/i, /berechne das/i, /moment bitte/i];
@@ -96,8 +96,8 @@ describe('Ansagen', () => {
   test('Keine Wiederholung, solange der Topf nicht erschöpft ist', () => {
     for (const humor of HUMOR_LEVELS) {
       const c = new Commentator({ rng: seeded(7), humor });
-      const pools = humor === 'freundlich' ? ['f'] : humor === 'frech' ? ['c', 'f'] : ['g', 'c'];
-      const total = pools.reduce((n, k) => n + JOKES.mid[k].length, 0);
+      const total = jokeCandidates(JOKES.mid, humor, ctx()).length;
+      assert.ok(total >= 4, `${humor}: genug Sprüche`);
       const seen = new Set();
       for (let i = 0; i < total; i++) {
         const out = c.comment(ctx());
