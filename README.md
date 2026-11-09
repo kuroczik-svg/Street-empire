@@ -7,7 +7,7 @@ Eine deutschsprachige, mobiloptimierte Dart-App (PWA), die als humorvoller Spiel
 
 ```bash
 npm start          # http://localhost:8080  (keine Abhängigkeiten nötig, Node ≥ 18)
-npm test           # 145 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
+npm test           # 161 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
 ```
 
 Optionaler Browser-Abnahmetest (Playwright + Chromium, simulierte Spracherkennung):
@@ -25,7 +25,10 @@ funktionieren immer – auch offline** (Service Worker).
 1. **Spielvorbereitung:** Anzahl Spieler → Namen (+ Spitznamen) → Startwert (301/501/701/eigener) →
    3 oder 6 Pfeile → Reihenfolge → wer beginnt → Single-/Double-/Master-Out.
    Der Start-Knopf ist gesperrt, bis Reihenfolge und erster Spieler **ausdrücklich bestätigt** sind.
-2. **Würfe ansagen:** großen Mikrofonknopf tippen und „17, 2, Triple 13“ sagen – oder im
+2. **Würfe ansagen:** Standard ist **„Dauerhaft zuhören“** – das Mikrofon bleibt im Spiel an, gezählt
+   werden nur reine Wurfansagen, jedes Gespräch wird stumm ignoriert (`src/listenFilter.js`: kein
+   unbekanntes Wort erlaubt; einzelne nackte Zahlen beginnen keine Aufnahme; Angefangenes verfällt nach
+   15 s; eine beiläufige Zahl kann nie einen Bust auslösen). Alternativ: großen Mikrofonknopf tippen und „17, 2, Triple 13“ sagen – oder im
    Aktivierungswort-Modus „Buddy, Doppel 20, 5, 12“. Alternativ jederzeit per Tastenfeld.
 3. Die App rechnet, sagt sofort einen frechen Spruch, den Rest und ruft den nächsten Spieler auf.
 

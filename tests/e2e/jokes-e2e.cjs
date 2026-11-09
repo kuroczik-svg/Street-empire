@@ -9,6 +9,7 @@ const root = path.join(__dirname, '..', '..');
 const shots = process.argv[2];
 const PORT = 8766;
 const INIT = `
+  try { if (!localStorage.getItem('dartbuddy.settings.v1')) localStorage.setItem('dartbuddy.settings.v1', JSON.stringify({ micMode: 'button', settingsVersion: 3 })); } catch (e) {}
   window.__spoken = [];
   let s = 12345; Math.random = () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648;
   Object.defineProperty(window, 'speechSynthesis', { value: { getVoices: () => [], cancel() {}, speak(u) { window.__spoken.push(u.text); setTimeout(() => u.onend && u.onend(), 2); } } });

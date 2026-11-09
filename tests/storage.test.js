@@ -64,3 +64,13 @@ test('Männerrunde ist standardmäßig an – auch nach Update alter Einstellung
   s.saveSettings({ ...migrated, maleWordingOk: false });
   assert.equal(s.loadSettings().maleWordingOk, false);
 });
+
+test('Dauerhaft zuhören ist Standard – auch nach Update alter Einstellungen', () => {
+  const m = memory();
+  const s = createStore(m);
+  assert.equal(s.loadSettings().micMode, 'always');
+  m.setItem('dartbuddy.settings.v1', JSON.stringify({ micMode: 'button', settingsVersion: 2 }));
+  assert.equal(s.loadSettings().micMode, 'always');
+  s.saveSettings({ ...s.loadSettings(), micMode: 'button' });
+  assert.equal(s.loadSettings().micMode, 'button');
+});

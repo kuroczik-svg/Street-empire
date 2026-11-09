@@ -165,7 +165,7 @@ export class SpeechIn {
     this.stop();
     this.mode = mode;
     if (wakeWord) this.wakeWord = wakeWord.toLowerCase();
-    if (wasActive && mode === 'wake') this.start();
+    if (wasActive && mode !== 'button') this.start();
   }
 
   build() {
@@ -173,7 +173,7 @@ export class SpeechIn {
     r.lang = 'de-DE';
     r.interimResults = true;
     r.maxAlternatives = 5;
-    r.continuous = this.mode === 'wake';
+    r.continuous = this.mode !== 'button';
     r.onstart = () => {
       this.listening = true;
       this.state();
@@ -195,7 +195,7 @@ export class SpeechIn {
     r.onend = () => {
       this.listening = false;
       // Im Aktivierungswort-Modus dauerhaft weiterhören (außer pausiert)
-      if (this.wantListening && this.mode === 'wake' && !this.paused) {
+      if (this.wantListening && this.mode !== 'button' && !this.paused) {
         setTimeout(() => this.safeStart(), 250);
       } else if (this.mode === 'button') {
         this.wantListening = false;
@@ -253,11 +253,17 @@ export class SpeechIn {
   resume() {
     if (!this.paused) return;
     this.paused = false;
-    if (this.wantListening && this.mode === 'wake') this.safeStart();
+    if (this.wantListening && this.mode !== 'button') this.safeStart();
   }
 
   state() {
-    this.h.onState?.(this.wantListening ? (this.mode === 'wake' ? (Date.now() < this.armedUntil ? 'armed' : 'wake') : 'listening') : 'idle');
+    let st = 'idle';
+    if (this.wantListening) {
+      if (this.mode === 'wake') st = Date.now() < this.armedUntil ? 'armed' : 'wake';
+      else if (this.mode === 'always') st = 'always';
+      else st = 'listening';
+    }
+    this.h.onState?.(st);
   }
 
   handleResult(e) {
@@ -278,6 +284,11 @@ export class SpeechIn {
   handleFinal(alts) {
     if (this.mode === 'button') {
       this.h.onResult(alts);
+      return;
+    }
+    if (this.mode === 'always') {
+      // Dauerhaft zuhören: alles weiterreichen – der Filter entscheidet, was eine Wurfansage ist
+      this.h.onResult(alts, { continuous: true });
       return;
     }
     // Aktivierungswort-Modus: nur Sätze nach "Buddy" zählen
@@ -466,13 +477,22 @@ export class NativeSpeechIn extends SpeechIn {
         } catch (e) {
           // "No match" / "No speech input" sind normal (Stille) – alles andere melden
           const msg = String((e && e.message) || e);
-          if (!/no match|no speech|didn.t understand|client side error|busy/i.test(msg)) {
+          if (/permission/i.test(msg)) {
+            this.h.onError?.('Mikrofon-Zugriff verweigert. Bitte in den App-Einstellungen erlauben.');
+            this.wantListening = false;
+          } else if (/network|server/i.test(msg) && this.mode !== 'button') {
+            // Im Dauerbetrieb nicht aufgeben: einmal melden, dann mit Pause weiterversuchen
+            if (!this.networkWarned) this.h.onError?.('Spracherkennung hat gerade kein Netz – ich versuche es weiter. Tasten gehen immer.');
+            this.networkWarned = true;
+            await new Promise((r) => setTimeout(r, 3000));
+          } else if (!/no match|no speech|didn.t understand|client side error|busy|timeout/i.test(msg)) {
             this.h.onError?.(`Spracherkennung: ${msg}`);
             this.wantListening = false;
           }
         }
         this.listening = false;
         if (this.mode === 'button') this.wantListening = false;
+        if (matches.length) this.networkWarned = false;
         if (matches.length && !this.paused) this.handleFinal(matches);
         if (this.mode === 'button') break;
         await new Promise((r) => setTimeout(r, 250));
@@ -500,7 +520,7 @@ export class NativeSpeechIn extends SpeechIn {
   resume() {
     if (!this.paused) return;
     this.paused = false;
-    if (this.wantListening && this.mode === 'wake') this.loop();
+    if (this.wantListening && this.mode !== 'button') this.loop();
   }
 }
 

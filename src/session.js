@@ -7,6 +7,7 @@
 import { computeState, addTurn, undoLast, editTurn, swapTurnPlayers, setNextPlayer, deleteEvent, isValidDart, dartLabel } from './engine.js';
 import { handleTextInput, acceptCandidate, evaluatePending, fillWithMisses, missingQuestion } from './turnInput.js';
 import { Commentator, buildContext } from './commentator.js';
+import { classifyContinuous, FRAGMENT_TIMEOUT_MS } from './listenFilter.js';
 
 export class GameSession {
   /**
@@ -22,6 +23,70 @@ export class GameSession {
     this.confirmBeforeCommit = confirmBeforeCommit;
     this.lastAnnouncement = null;
     this.hadQuestion = false; // musste bei der laufenden Aufnahme nachgefragt werden?
+    this.fragmentDeadline = 0; // Dauer-Modus: bis wann eine angefangene Ansage fortgesetzt werden kann
+  }
+
+  /**
+   * Eingabe im Modus „Dauerhaft zuhören“: nur reine Wurfansagen zählen, alles
+   * andere wird STUMM ignoriert (keine Rückfrage, keine Ansage).
+   * @param {string} text
+   * @param {number} [now] – Zeitstempel (für Tests)
+   * @returns {{action: string, silent?: boolean, reason?: string, message?: string}}
+   */
+  inputContinuous(text, now = Date.now()) {
+    if (this.state.finished) return { action: 'ignore', silent: true, reason: 'spielende' };
+    const { dartsPerTurn } = this.game.config;
+    const c = classifyContinuous(text, { maxDarts: dartsPerTurn });
+    if (c.kind === 'ignore') return { action: 'ignore', silent: true, reason: c.reason };
+    if (c.kind === 'command') return this.undo();
+    if (c.kind === 'ask') {
+      // klingt eindeutig nach Dart, ist aber unklar → gezielt nachfragen (wie beim Knopf)
+      return this.input(text);
+    }
+
+    // Angefangene Ansage abgelaufen? Dann gilt sie als Gerede und wird verworfen.
+    this.expireFragment(now);
+    const continuing = this.pending.length > 0;
+    // Einzelne nackte Zahl darf keine neue Aufnahme beginnen (fällt im Gespräch ständig)
+    if (!continuing && c.darts.length === 1 && !c.strong) {
+      const ev = evaluatePending(this.game, c.darts);
+      // Ausnahme: Die Zahl checkt genau aus (z. B. Single-Out, Rest 20: „zwanzig“). Ein Bust durch
+      // eine beiläufig gesagte Zahl darf dagegen NIE passieren.
+      if (!(ev.preview && ev.preview.checkout)) return { action: 'ignore', silent: true, reason: 'einzelne Zahl' };
+    }
+
+    let r = handleTextInput(this.game, this.pending, text);
+    if (r.action === 'ask' && r.reason === 'too_many_darts' && continuing) {
+      // Das angefangene Stück war wohl Gerede – neue Ansage für sich allein werten
+      r = handleTextInput(this.game, [], text);
+    }
+    if (r.action === 'commit') {
+      this.pending = r.pending;
+      this.fragmentDeadline = 0;
+      return this.maybeCommit();
+    }
+    if (r.action === 'wait') {
+      this.pending = r.pending;
+      this.fragmentDeadline = now + FRAGMENT_TIMEOUT_MS;
+      return { action: 'wait', silent: true, message: `${r.message} (wartet ${Math.round(FRAGMENT_TIMEOUT_MS / 1000)} s)` };
+    }
+    // alles andere (z. B. weiterhin zu viele Pfeile) → stumm ignorieren
+    return { action: 'ignore', silent: true, reason: r.reason || r.action };
+  }
+
+  /**
+   * Verwirft eine im Dauer-Modus angefangene, nicht fortgesetzte Ansage.
+   * Von Hand eingetippte Pfeile verfallen nie.
+   * @returns {boolean} ob etwas verworfen wurde
+   */
+  expireFragment(now = Date.now()) {
+    if (this.fragmentDeadline && this.pending.length && now > this.fragmentDeadline) {
+      this.pending = [];
+      this.fragmentDeadline = 0;
+      this.hadQuestion = false;
+      return true;
+    }
+    return false;
   }
 
   get state() {
@@ -110,6 +175,7 @@ export class GameSession {
       return { action: 'ask', message: 'Die Aufnahme ist schon vollständig – erst buchen oder einen Pfeil löschen.' };
     }
     this.pending = this.pending.concat([{ mult: d.mult, value: d.value }]);
+    this.fragmentDeadline = 0; // von Hand ergänzt → verfällt nicht mehr
     const ev2 = this.evaluation();
     if (ev2.status === 'complete' && autoCommit) return this.maybeCommit();
     return { action: 'wait', message: ev2.status === 'complete' ? '' : missingQuestion(this.pending.length, this.game.config.dartsPerTurn) };
@@ -122,6 +188,7 @@ export class GameSession {
 
   clearPending() {
     this.pending = [];
+    this.fragmentDeadline = 0;
     this.hadQuestion = false;
     this.candidate = null;
     this.awaitingCommit = false;

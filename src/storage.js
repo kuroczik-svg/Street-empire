@@ -22,12 +22,12 @@ export const DEFAULT_SETTINGS = Object.freeze({
   volume: 1,
   voiceURI: '',
   voiceStyle: 'kumpel',
-  micMode: 'button', // 'button' | 'wake'
+  micMode: 'always', // 'always' (dauerhaft zuhören) | 'button' | 'wake'
   wakeWord: 'buddy',
   confirmBeforeCommit: false,
   showCheckout: true,
   maleWordingOk: true, // „Männerrunde“: Sprüche wie „Der Mann kann tatsächlich Dart spielen!“
-  settingsVersion: 2,
+  settingsVersion: 3,
 });
 
 const MAX_HISTORY = 300;
@@ -74,6 +74,8 @@ export function createStore(storage) {
       const saved = { ...read(KEYS.settings, {}) };
       // v2: „Männerrunde“ ist jetzt standardmäßig an – alten gespeicherten Standardwert einmalig übernehmen
       if ((saved.settingsVersion || 1) < 2) delete saved.maleWordingOk;
+      // v3: „Dauerhaft zuhören“ ist jetzt der Standard
+      if ((saved.settingsVersion || 1) < 3) delete saved.micMode;
       return { ...DEFAULT_SETTINGS, ...saved, settingsVersion: DEFAULT_SETTINGS.settingsVersion };
     },
     saveSettings: (v) => write(KEYS.settings, v),

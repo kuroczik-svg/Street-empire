@@ -10,7 +10,8 @@ import {
 import { parseThrowInput } from './parser.js';
 import { GameSession } from './session.js';
 import { Commentator, HUMOR_LEVELS, HUMOR_LABELS, formatRoute } from './commentator.js';
-import { createSpeechOut, createSpeechIn, VOICE_STYLES } from './speech.js';
+import { createSpeechOut, createSpeechIn, VOICE_STYLES, isNativeApp } from './speech.js';
+import { continuousScore } from './listenFilter.js';
 import { createStore, ensureProfile, aggregateStats } from './storage.js';
 import { createJokesScreen } from './jokesScreen.js';
 
@@ -125,9 +126,16 @@ const jokesScreen = createJokesScreen({
 
 // ------------------------------------------------------------ Sprache
 const speechIn = createSpeechIn({
-  onResult: (alts) => {
+  onResult: (alts, meta = {}) => {
     ui.interim = '';
     if (!session || screen !== 'game') return;
+    if (meta.continuous) {
+      // Dauerhaft zuhören: nur reine Wurfansagen zählen, Gespräche werden stumm verworfen
+      const max = session.game.config.dartsPerTurn;
+      const text = alts.reduce((best, a, i) => (continuousScore(a, { maxDarts: max }) - i * 0.01 > continuousScore(best, { maxDarts: max }) ? a : best), alts[0]);
+      handleOutcome(session.inputContinuous(text), { fromVoice: true, heard: text, continuous: true });
+      return;
+    }
     const text = pickAlternative(alts);
     handleOutcome(session.input(text), { fromVoice: true, heard: text });
   },
@@ -137,8 +145,11 @@ const speechIn = createSpeechIn({
     if (el) el.textContent = `„${t}“`;
   },
   onState: (s) => {
+    const was = ui.micState;
     ui.micState = s;
     updateMic();
+    // Dauer-Modus: Beschriftung am Mikrofon aktualisieren, wenn es an-/ausgeht
+    if (settings.micMode === 'always' && screen === 'game' && (was === 'always') !== (s === 'always')) render();
   },
   onError: (msg) => {
     toast(msg, 4500);
@@ -175,8 +186,27 @@ function pickAlternative(alts) {
 }
 
 // ------------------------------------------------------------ Ergebnisbehandlung
-function handleOutcome(r, { fromVoice = false, heard = '' } = {}) {
+function handleOutcome(r, { fromVoice = false, heard = '', continuous = false } = {}) {
   if (!r) return;
+  if (r.silent) {
+    // Dauer-Modus: nichts sagen. Ignoriertes nur unauffällig anzeigen.
+    if (r.action === 'ignore') {
+      ui.ignored = heard ? `Ignoriert: „${heard}“` : '';
+      const el = document.getElementById('ignored');
+      if (el) el.textContent = ui.ignored;
+      return;
+    }
+    if (r.action === 'wait') {
+      ui.ignored = '';
+      ui.message = r.message;
+      ui.messageKind = 'ask';
+      ui.messageActions = 'missing';
+      ui.heardHtml = heard ? `<div class="small muted">Gehört: „${esc(heard)}“</div>` : '';
+      render();
+      return;
+    }
+  }
+  if (continuous) ui.ignored = '';
   ui.messageActions = null;
   const heardHtml = heard ? `<div class="small muted">Gehört: „${esc(heard)}“</div>` : '';
   switch (r.action) {
@@ -467,7 +497,9 @@ function renderGame() {
 
   const micLabel = !speechIn.supported
     ? '<b>Spracheingabe nicht verfügbar</b><span class="small muted">Dieser Browser unterstützt keine Spracherkennung – nutze die Tasten.</span>'
-    : settings.micMode === 'wake'
+    : settings.micMode === 'always'
+      ? `<b>${ui.micState === 'always' ? '🎧 Hört dauerhaft zu' : '⏸ Dauer-Mikrofon pausiert'}</b><span class="small muted">${ui.micState === 'always' ? 'Gezählt werden nur Wurfansagen wie „17, 2, Triple 13“ – Gespräche werden ignoriert. Tippen = Pause.' : 'Tippen zum Einschalten.'}</span>`
+      : settings.micMode === 'wake'
       ? `<b>Aktivierungswort „${esc(capital(settings.wakeWord))}“</b><span class="small muted">Tippen zum Ein-/Ausschalten. Dann z. B.: „${esc(capital(settings.wakeWord))}, 17, 2, Triple 13“</span>`
       : '<b>Tippen &amp; Würfe ansagen</b><span class="small muted">z. B. „17, 2, Triple 13“ oder „Doppel 20, 5, 12“</span>';
 
@@ -495,6 +527,7 @@ function renderGame() {
         ${ui.message ? esc(ui.message) : '<span class="muted">Bereit. Sag die Pfeile an oder tippe sie ein.</span>'}
         ${ui.messageKind === 'ask' && ui.heardHtml ? ui.heardHtml : ''}
         <div class="interim" id="interim"></div>
+        <div class="small muted" id="ignored" style="opacity:.7">${esc(ui.ignored || '')}</div>
         ${actions}
       </div>
 
@@ -549,6 +582,7 @@ function renderGame() {
   </div>`;
   ui.flash = '';
   updateMic();
+  autoStartContinuous();
 }
 
 function renderWinner(st, cfg) {
@@ -580,10 +614,36 @@ function renderWinner(st, cfg) {
   </div>`;
 }
 
+/** Dauer-Modus: Mikrofon automatisch einschalten (in der App sofort, im Browser nach dem ersten Antippen). */
+function autoStartContinuous() {
+  if (settings.micMode !== 'always' || !speechIn.supported || !session || screen !== 'game') return;
+  if (session.state.finished || ui.micPausedByUser || speechIn.wantListening) return;
+  if (!isNativeApp() && !ui.micEverStarted) return; // Browser verlangt das erste Einschalten per Antippen
+  speechIn.start();
+}
+
+/** Bildschirm wach halten, solange dauerhaft zugehört wird. */
+async function updateWakeLock() {
+  const want = settings.micMode === 'always' && speechIn.wantListening && screen === 'game';
+  try {
+    if (want && !ui.wakeLock && navigator.wakeLock) {
+      ui.wakeLock = await navigator.wakeLock.request('screen');
+      ui.wakeLock.addEventListener?.('release', () => (ui.wakeLock = null));
+    } else if (!want && ui.wakeLock) {
+      await ui.wakeLock.release();
+      ui.wakeLock = null;
+    }
+  } catch {
+    ui.wakeLock = null; // nicht unterstützt – kein Problem
+  }
+}
+
 function updateMic() {
+  updateWakeLock();
   const mic = document.getElementById('mic');
   if (!mic) return;
-  mic.classList.toggle('listening', ui.micState === 'listening');
+  mic.classList.toggle('listening', ui.micState === 'listening' || ui.micState === 'always');
+  mic.classList.toggle('always', ui.micState === 'always');
   mic.classList.toggle('wake', ui.micState === 'wake');
   mic.classList.toggle('armed', ui.micState === 'armed');
   mic.setAttribute('aria-pressed', ui.micState !== 'idle');
@@ -795,9 +855,10 @@ function renderSettings() {
       <div class="setting-block"><span class="lbl">Spracheingabe</span>
         <div class="chips">
           <button class="chip" data-action="micmode" data-v="button" aria-pressed="${settings.micMode === 'button'}">🎤 Mikrofonknopf</button>
+          <button class="chip" data-action="micmode" data-v="always" aria-pressed="${settings.micMode === 'always'}">🎧 Dauerhaft zuhören</button>
           <button class="chip" data-action="micmode" data-v="wake" aria-pressed="${settings.micMode === 'wake'}">🗣 Aktivierungswort</button>
         </div>
-        <p class="small muted">Knopf: tippen, Würfe ansagen, fertig. Aktivierungswort: die App hört dauerhaft mit, zählt aber nur Sätze, die mit „${esc(capital(settings.wakeWord))}“ beginnen. Beim eigenen Sprechen hört die App nicht zu.</p>
+        <p class="small muted"><b>Dauerhaft zuhören:</b> Das Mikrofon bleibt während des Spiels an. Gezählt werden nur reine Wurfansagen („17, 2, Triple 13“, „Doppel 20, 5, 12“, „Bullseye“) – jedes Gesprächsstück wird stumm ignoriert. Eine einzelne nackte Zahl („acht“) zählt nur, wenn sie eine angefangene Ansage vervollständigt; Angefangenes verfällt nach 15 Sekunden. Der Bildschirm bleibt dabei an.<br>Knopf: tippen, Würfe ansagen, fertig. Aktivierungswort: die App hört dauerhaft mit, zählt aber nur Sätze, die mit „${esc(capital(settings.wakeWord))}“ beginnen. Beim eigenen Sprechen hört die App nicht zu.</p>
       </div>
       <div class="setting-block"><label for="ww">Aktivierungswort</label>
         <input id="ww" class="input" data-field="wakeWord" value="${esc(settings.wakeWord)}" maxlength="20" />
@@ -851,7 +912,7 @@ function render() {
     screen = 'home';
     renderHome();
   }
-  if (screen !== 'game' && settings.micMode === 'wake') speechIn.stop();
+  if (screen !== 'game' && settings.micMode !== 'button') speechIn.stop();
 }
 
 // ------------------------------------------------------------ Ereignisse
@@ -932,6 +993,13 @@ async function onClick(e) {
     case 'mic':
       if (!speechIn.supported) return toast('Spracherkennung nicht verfügbar.');
       speechOut.stop();
+      ui.micEverStarted = true;
+      if (settings.micMode === 'always') {
+        ui.micPausedByUser = speechIn.wantListening; // Antippen = Pause bzw. wieder einschalten
+        if (speechIn.wantListening) speechIn.stop();
+        else speechIn.start();
+        return render();
+      }
       speechIn.toggle();
       return;
     case 'mult':
@@ -1200,6 +1268,25 @@ function init() {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 }
+
+// Dauer-Modus: angefangene, nicht fortgesetzte Ansagen verfallen lassen
+setInterval(() => {
+  if (screen === 'game' && session && session.expireFragment()) {
+    ui.message = 'Unvollständige Ansage verworfen – nichts gezählt.';
+    ui.messageKind = 'warn';
+    ui.messageActions = null;
+    render();
+  }
+}, 1000);
+
+// Nach Rückkehr in die App: Bildschirmsperre neu anfordern, Mikrofon ggf. wieder starten
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    ui.wakeLock = null;
+    updateWakeLock();
+    autoStartContinuous();
+  }
+});
 
 /** Lädt die maßgebliche Kommentarbibliothek (offline aus dem App-Paket bzw. Service-Worker-Cache). */
 async function loadCommentLibrary() {

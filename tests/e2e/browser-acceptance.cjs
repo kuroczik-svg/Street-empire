@@ -12,6 +12,7 @@ const shots = process.argv[2];
 const PORT = 8765;
 
 const FAKE = `
+  try { if (!localStorage.getItem('dartbuddy.settings.v1')) localStorage.setItem('dartbuddy.settings.v1', JSON.stringify({ micMode: 'button', settingsVersion: 3 })); } catch (e) {}
   window.__spoken = [];
   class FakeRec {
     constructor() { this.lang = ''; this.continuous = false; this.interimResults = false; this.maxAlternatives = 1; window.__rec = this; }
