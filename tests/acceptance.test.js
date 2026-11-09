@@ -10,6 +10,7 @@ import { createGame, dart } from '../src/engine.js';
 import { GameSession } from '../src/session.js';
 import { Commentator } from '../src/commentator.js';
 import { FORBIDDEN } from './commentator.test.js';
+import { fullLibrary } from './helpers.js';
 
 function seeded(seed = 2026) {
   let s = seed;
@@ -38,7 +39,7 @@ test('Abnahmetest: Lukas, Wowa und Markus spielen 301 Double-Out', () => {
   const game = createGame({ ...config, orderConfirmed: true });
 
   for (const humor of ['freundlich', 'frech', 'gnadenlos']) {
-    const s = new GameSession(game, { commentator: new Commentator({ humor, rng: seeded() }) });
+    const s = new GameSession(game, { commentator: new Commentator({ humor, rng: seeded(), library: fullLibrary() }) });
     const announcements = [];
     const rest = () => Object.fromEntries(s.state.players.map((p) => [p.id, p.remaining]));
     const active = () => s.state.activePlayerId;

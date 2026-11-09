@@ -26,9 +26,18 @@ export function createJokesScreen({ store, commentator, speak, toast, confirmDia
   const form = { id: null, text: '', situation: 'katastrophe', level: null, players: 0, createdAt: null, enabled: true };
   const bulk = { text: '', situation: 'katastrophe', level: null };
   let builtinFlat = [];
+  let commentData = null; // data/comments.de.json
+  let commentDataError = null;
 
   function apply() {
-    commentator.setLibrary(buildLibrary(custom, hidden));
+    commentator.setLibrary(buildLibrary(custom, hidden, commentData));
+  }
+
+  /** Kommentarbibliothek v1.0 (data/comments.de.json) übernehmen. */
+  function setCommentData(data, error = null) {
+    commentData = data;
+    commentDataError = error;
+    apply();
   }
   function persist() {
     store.saveCustomJokes(custom);
@@ -62,7 +71,7 @@ export function createJokesScreen({ store, commentator, speak, toast, confirmDia
   }
 
   function render(container) {
-    const builtin = builtInOverview();
+    const builtin = builtInOverview(commentData);
     builtinFlat = [];
     const builtinCount = builtin.reduce((n, g) => n + g.items.length, 0);
     const active = custom.filter((j) => j.enabled !== false).length;
@@ -74,7 +83,8 @@ export function createJokesScreen({ store, commentator, speak, toast, confirmDia
     <div class="row" style="justify-content:space-between;margin-bottom:6px">
       <h1>Sprüche-Bibliothek</h1>
     </div>
-    <p class="muted small">Eingebaut: ${builtinCount} · Eigene: ${custom.length} (${active} aktiv)${hidden.length ? ` · ausgeblendet: ${hidden.length}` : ''}. Eigene Sprüche bleiben bei App-Updates erhalten und kommen etwas häufiger dran.</p>
+    ${commentDataError ? `<p class="notice">Die Kommentarbibliothek (data/comments.de.json) konnte nicht geladen werden: ${esc(commentDataError)}. Die Grund-Sprüche funktionieren trotzdem.</p>` : ''}
+    <p class="muted small">${commentData ? `Kommentarbibliothek v1.0: ${commentData.comments.length} Sprüche · ` : ''}Eingebaut: ${builtinCount} · Eigene: ${custom.length} (${active} aktiv)${hidden.length ? ` · ausgeblendet: ${hidden.length}` : ''}. Eigene Sprüche bleiben bei App-Updates erhalten und kommen etwas häufiger dran.</p>
 
     <section class="card" id="joke-form">
       <h2>${form.id ? '✏️ Spruch bearbeiten' : '➕ Neuer Spruch'}</h2>
@@ -379,5 +389,5 @@ export function createJokesScreen({ store, commentator, speak, toast, confirmDia
     apply();
   }
 
-  return { render, onClick, onInput, reset, counts: () => ({ custom: custom.length, hidden: hidden.length }) };
+  return { render, onClick, onInput, reset, setCommentData, counts: () => ({ custom: custom.length, hidden: hidden.length }) };
 }

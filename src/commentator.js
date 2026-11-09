@@ -9,6 +9,7 @@
 
 import { checkoutSuggestion, dartLabel, dartSpeech } from './engine.js';
 import { JOKES, EXTRAS, NEXT_CALLS, CORRECTION } from './jokes.js';
+import { tierOf, normalizedPoints, NEAR_WIN_MAX } from './commentData.js';
 
 export { JOKES, EXTRAS, NEXT_CALLS };
 
@@ -35,17 +36,21 @@ const REST_CALLS = ['Noch {rest}!', 'Rest {rest}!', 'Bleiben {rest}!', 'Noch {re
 
 // ------------------------------------------------------------
 
-export function classifyTurn(result) {
+/**
+ * Kategorie einer Aufnahme. Bei 6 Pfeilen wird auf 3 Pfeile normiert –
+ * eine 180 mit 6 Pfeilen ist also KEINE „perfekte 180“.
+ */
+export function classifyTurn(result, dartsPerTurn = 3) {
   if (result.checkout) return 'win';
   if (result.bust) return 'bust';
-  const p = result.points;
-  if (p === 180) return 'max';
+  if (dartsPerTurn === 3 && result.points === 180) return 'max';
+  const p = normalizedPoints(result.points, dartsPerTurn);
   if (p >= 140) return 'big';
   if (p >= 100) return 'ton';
   if (p >= 60) return 'good';
   if (p >= 45) return 'solid';
   if (p >= 20) return 'mid';
-  if (p >= 1) return 'low';
+  if (p > 0) return 'low';
   return 'zero';
 }
 
@@ -108,6 +113,23 @@ export function buildContext(before, after, result, config, extra = {}) {
   const rivalBust = result.bust && rivalCanFinish && rival.remaining <= 100;
   const rivalLow = !result.bust && !result.checkout && result.points < 40 && rivalCanFinish && rival.remaining <= 100 && player.remaining - rival.remaining >= 60;
 
+  // Gegner kurz vor dem Sieg (höchstens 50 Rest und auscheckbar)
+  const nearWin = (p) => p.remaining <= NEAR_WIN_MAX && !!checkoutSuggestion(p.remaining, config.outMode, dartsLeft);
+  const nearWinOpp = others.filter(nearWin).sort((a, b) => a.remaining - b.remaining)[0] || null;
+  const opponent = leader && leader.id !== pid ? leader : rival;
+  let nextInfo = null;
+  if (next) {
+    const nextTurns = after.log.filter((l) => l.type === 'turn' && l.playerId === next.id);
+    const lastNext = nextTurns[nextTurns.length - 1];
+    const nextOthers = after.players.filter((p) => p.id !== next.id);
+    const nwo = nextOthers.filter(nearWin).sort((a, b) => a.remaining - b.remaining)[0] || null;
+    nextInfo = {
+      prevPoints: lastNext ? lastNext.points : null,
+      nearWinOpponent: nwo ? nwo.name : null,
+      leaderName: leader && leader.id !== next.id ? leader.name : null,
+    };
+  }
+
   // Eigene Vorgeschichte des Werfers (aus dem Zustand VOR dieser Aufnahme)
   const prevTurns = before.log.filter((l) => l.type === 'turn' && l.playerId === pid);
   const prevTurn = prevTurns[prevTurns.length - 1] || null;
@@ -116,7 +138,14 @@ export function buildContext(before, after, result, config, extra = {}) {
   const lastDart = counted[counted.length - 1] || null;
 
   return {
-    category: classifyTurn(result),
+    category: classifyTurn(result, config.dartsPerTurn),
+    tier: tierOf(result.points, config.dartsPerTurn),
+    normPoints: normalizedPoints(result.points, config.dartsPerTurn),
+    earlierPoints: prevTurns.map((t) => t.points),
+    lastDartMissed: counted.length === 3 && isMiss(counted[2]),
+    opponentName: opponent ? opponent.name : null,
+    nearWinOpponent: nearWinOpp ? nearWinOpp.name : null,
+    otherNames: others.map((p) => p.name),
     player: { id: pid, name: player.name, nickname: player.nickname },
     next: next
       ? {
@@ -126,6 +155,7 @@ export function buildContext(before, after, result, config, extra = {}) {
           remaining: next.remaining,
           bestTurn: next.stats.highestTurn,
           isLast: n > 2 && after.standings.ranks[next.id] === n,
+          ...nextInfo,
         }
       : null,
     points: result.points,
@@ -172,12 +202,14 @@ function fill(tpl, vars) {
 }
 
 const entryText = (e) => (typeof e === 'string' ? e : e.t);
+const entryKey = (e) => (typeof e === 'string' ? e : e.id || e.t);
 
 /** Prüft, ob ein Spruch in der aktuellen Situation passt. */
 export function isEligible(entry, ctx) {
   if (typeof entry === 'string') return true;
-  if (entry.min !== undefined && ctx.points < entry.min) return false;
-  if (entry.max !== undefined && ctx.points > entry.max) return false;
+  const pts = ctx.normPoints ?? ctx.points;
+  if (entry.min !== undefined && pts < entry.min) return false;
+  if (entry.max !== undefined && pts > entry.max) return false;
   if (entry.players !== undefined && ctx.playerCount !== entry.players) return false;
   if (entry.when) {
     try {
@@ -202,7 +234,8 @@ export function jokeCandidates(table, humor, ctx) {
  * Der Kommentator. Merkt sich bereits benutzte Sprüche, um Wiederholungen zu vermeiden.
  */
 export class Commentator {
-  constructor({ humor = 'frech', rng = Math.random, memorySize = 80, library } = {}) {
+  constructor({ humor = 'frech', rng = Math.random, memorySize = 80, library, maleWordingOk = false } = {}) {
+    this.maleWordingOk = maleWordingOk;
     this.humor = HUMOR_LEVELS.includes(humor) ? humor : 'frech';
     this.lib = library || { JOKES, EXTRAS, NEXT_CALLS, CORRECTION };
     this.rng = rng;
@@ -237,16 +270,16 @@ export class Commentator {
   pickEntry(table, ctx) {
     const all = jokeCandidates(table, this.humor, ctx);
     if (!all.length) return null;
-    let fresh = all.filter((c) => !this.recent.includes(entryText(c.e)));
+    let fresh = all.filter((c) => !this.recent.includes(entryKey(c.e)));
     if (!fresh.length) {
       // Alles schon gehört: Gedächtnis für diese Sprüche leeren, den letzten aber nicht sofort wiederholen
-      const texts = all.map((c) => entryText(c.e));
+      const texts = all.map((c) => entryKey(c.e));
       const last = this.recent[this.recent.length - 1];
       this.recent = this.recent.filter((t) => !texts.includes(t));
-      fresh = all.filter((c) => entryText(c.e) !== last);
+      fresh = all.filter((c) => entryKey(c.e) !== last);
       if (!fresh.length) fresh = all;
     }
-    const situational = fresh.filter((c) => typeof c.e === 'object' && c.e.when);
+    const situational = fresh.filter((c) => typeof c.e === 'object' && (c.e.situational ?? !!c.e.when));
     const own = fresh.filter((c) => typeof c.e === 'object' && c.e.custom);
     const primaryKey = LEVEL_POOLS[this.humor][0];
     const primary = fresh.filter((c) => c.pool === primaryKey);
@@ -255,7 +288,7 @@ export class Commentator {
     else if (situational.length && this.rng() < SITUATION_WEIGHT) source = situational;
     else if (primary.length && this.rng() < PRIMARY_WEIGHT) source = primary;
     const chosen = this.pick(source).e;
-    this.remember(entryText(chosen));
+    this.remember(entryKey(chosen));
     return chosen;
   }
 
@@ -277,9 +310,32 @@ export class Commentator {
     return p.name;
   }
 
-  /** Kurzer Spruch nach einer Korrektur (z. B. vertauschte Spieler). */
-  correctionQuip() {
-    return this.pickJoke(this.lib.CORRECTION, { points: 0, playerCount: 0 }) || 'Korrigiert!';
+  /** Spruch-Historie (wird mit dem Spiel gespeichert, damit nach dem Neuladen nichts sofort wiederkommt). */
+  exportMemory() {
+    return this.recent.slice();
+  }
+
+  importMemory(list) {
+    if (Array.isArray(list)) this.recent = list.filter((x) => typeof x === 'string').slice(-this.memorySize);
+  }
+
+  /** Kurzer Spruch nach einer Korrektur. info.name = Spieler der korrigierten Aufnahme. */
+  correctionQuip(info = {}) {
+    const ctx = { points: 0, playerCount: info.playerCount || 0, dartsPerTurn: info.dartsPerTurn, player: info.name ? { name: info.name } : null, maleWordingOk: this.maleWordingOk };
+    const t = this.pickJoke(this.lib.CORRECTION, ctx);
+    return t ? fill(t, { name: info.name }).replace(/\{name\}, ?/g, '') : 'Korrigiert!';
+  }
+
+  /**
+   * Spruch zu einer ungültigen Eingabe (ändert NIE Punkte oder den Spieler).
+   * @param {'too_many_darts'|'ambiguous'} reason
+   */
+  invalidQuip(reason, info = {}) {
+    const table = this.lib.INVALID && this.lib.INVALID[reason];
+    if (!table) return null;
+    const ctx = { points: 0, reason, playerCount: info.playerCount, dartsPerTurn: info.dartsPerTurn, maleWordingOk: this.maleWordingOk };
+    const t = this.pickJoke(table, ctx);
+    return t ? fill(t, { name: info.name }) : null;
   }
 
   /**
@@ -287,7 +343,8 @@ export class Commentator {
    * Reihenfolge: Schlagzeile (Zahlen) → Spruch → Rest → Extra → nächster Spieler.
    * @returns {{text:string, parts:string[], energy:number, category:string}}
    */
-  comment(ctx) {
+  comment(ctxIn) {
+    const ctx = { ...ctxIn, maleWordingOk: this.maleWordingOk };
     const name = this.displayName(ctx.player);
     const routeText = ctx.route ? ctx.route.map(dartSpeech).join(', ') : '';
     const vars = {
@@ -304,6 +361,9 @@ export class Commentator {
       route: routeText,
       next: ctx.next && ctx.next.name,
       nextBest: ctx.next && ctx.next.bestTurn,
+      nextLeader: ctx.next && ctx.next.leaderName,
+      prevPlayer: ctx.player.name,
+      opponent: ctx.opponentName,
     };
     const parts = [];
     const cat = ctx.category;

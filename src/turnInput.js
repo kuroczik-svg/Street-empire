@@ -65,7 +65,7 @@ export function handleTextInput(game, pending, text) {
   }
   const blocking = parsed.issues.filter((i) => i.type !== 'too_many');
   if (blocking.length) {
-    return { action: 'ask', pending, parsed, message: `${blocking[0].message} Bitte nochmal ansagen.` };
+    return { action: 'ask', reason: 'ambiguous', pending, parsed, message: `${blocking[0].message} Bitte nochmal ansagen.` };
   }
 
   const combined = pending.concat(parsed.darts);
@@ -77,6 +77,7 @@ export function handleTextInput(game, pending, text) {
     if (!endedEarly) {
       return {
         action: 'ask',
+        reason: 'too_many_darts',
         pending,
         parsed,
         message: `Ich habe ${combined.length} Pfeile gehört (${combined.map(dartLabel).join(', ')}), erlaubt sind ${dartsPerTurn}. Bitte die Aufnahme nochmal ansagen.`,

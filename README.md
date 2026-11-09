@@ -7,7 +7,7 @@ Eine deutschsprachige, mobiloptimierte Dart-App (PWA), die als humorvoller Spiel
 
 ```bash
 npm start          # http://localhost:8080  (keine Abhängigkeiten nötig, Node ≥ 18)
-npm test           # 127 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
+npm test           # 142 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
 ```
 
 Optionaler Browser-Abnahmetest (Playwright + Chromium, simulierte Spracherkennung):
@@ -61,11 +61,28 @@ Regeln werden geprüft: 180er-Sprüche nur unter „Die 180“, „die beiden“
 nennen immer den nächsten Spieler, Zahlen setzt die App ein. Logik: `src/library.js`, Oberfläche:
 `src/jokesScreen.js`. Die eingebauten Sprüche stehen in `src/jokes.js`.
 
+**Maßgebliche Kommentarbibliothek v1.0: `data/comments.de.json`** – 81 Sprüche (31 vom Dartabend +
+50 FSK-16) mit IDs, Ereignissen (`throw`, `bust`, `win`, `turn_start`, `invalid_input`, `correction`),
+Leistungsstufen und Kontextbedingungen. Regeln: `data/README-kommentarbibliothek.md`.
+`src/commentData.js` setzt diese Regeln im Kommentator um:
+
+- Stufen poor 0–25 / mid 26–59 / good 60–99 / excellent 100–179 / perfect180 (genau 180 **mit 3 Pfeilen**);
+  bei 6 Pfeilen auf 3 Pfeile normiert, eine 180 mit 6 Pfeilen ist keine perfekte 180
+- alle `when`-Bedingungen müssen zutreffen; fehlen Daten oder ist eine Bedingung unbekannt, kommt der Spruch nicht
+  (z. B. `claimMagic` – die App weiß nicht, ob jemand „zaubern“ angekündigt hat)
+- `turn_start` = Aufruf des nächsten Spielers (nennt ihn immer beim Namen), `invalid_input` = Spruch bei
+  zu vielen Pfeilen/unklarer Ansage (ändert nie Punkte oder Spieler), `correction` = nach einer Korrektur
+  (erst nach der Neuberechnung)
+- `maleWordingOk` → Einstellung „Männerrunde“ (aus = solche Sprüche kommen nicht)
+- Zusatzregel der App: „die anderen beiden“ nur bei genau 3 Spielern
+- Spruch-Historie wird mit dem Spiel gespeichert (keine Wiederholung nach dem Neuladen)
+- fehlt die Datei, läuft das Spiel mit den Grund-Sprüchen aus `src/jokes.js` weiter
+
 | Humor-Stufe | Inhalt |
 |---|---|
-| 😊 Freundlich – lockere Witze | Grundstock „f“ |
-| 😏 Frech – ordentliche Sticheleien | „c“ + **Kumpel-Sammlung** (31 Sprüche vom Dartabend mit Markus, Lukas und Wowa) |
-| 😈 Gnadenlos – FSK-16-Dartabend | **FSK-16-Edition** (50 Sprüche, derb, mit Schimpfwörtern) + Kumpel-Sammlung + Grundstock |
+| 😊 Freundlich – lockere Witze | Grund-Sprüche „f“ |
+| 😏 Frech – ordentliche Sticheleien | + Bibliothekssprüche mit `minHumorLevel: frech` |
+| 😈 Gnadenlos – FSK-16-Dartabend | + alle Bibliothekssprüche (FSK-16-Stil) |
 
 Der Kommentator wählt nach Punktzahl, Spielstand, Vorgeschichte und den zuletzt gesagten Sprüchen:
 z. B. „Vorhin 170 Punkte rausgehauen …“, „Der dritte Pfeil war wohl ein Warnschuss …“ (nur wenn genau der

@@ -1,0 +1,765 @@
+{
+  "schemaVersion": 1,
+  "locale": "de-DE",
+  "defaultHumorLevel": "gnadenlos",
+  "comments": [
+    {
+      "id": "original-01",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "Na, dann schauen wir mal, ob {name} die Scheibe trifft oder nur die Wand dekoriert!",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-02",
+      "origin": "original",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, hast du die Pfeile geworfen oder die Scheibe nur vorsichtig gestreichelt?",
+      "minHumorLevel": "frech",
+      "when": {
+        "pointsMax": 35
+      }
+    },
+    {
+      "id": "original-03",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "Jetzt aber Gas geben, sonst brauchst du heute noch Stützräder für deine Pfeile!",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-04",
+      "origin": "original",
+      "event": "invalid_input",
+      "tier": "any",
+      "text": "Alter, du hast doch nur drei Pfeile und keine Maschinenpistole!",
+      "minHumorLevel": "frech",
+      "when": {
+        "reason": "too_many_darts",
+        "maxDartsExact": 3
+      }
+    },
+    {
+      "id": "original-05",
+      "origin": "original",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "Eben noch Pfeile spazieren getragen und jetzt spielst du wie Phil Taylor auf Koffein!",
+      "minHumorLevel": "frech",
+      "when": {
+        "priorLowTurn": true
+      }
+    },
+    {
+      "id": "original-06",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "Zeig mal, ob deine 120 Punkte vorhin Können waren oder ein Betriebsunfall!",
+      "minHumorLevel": "frech",
+      "when": {
+        "previousTurnPointsExact": 120
+      }
+    },
+    {
+      "id": "original-07",
+      "origin": "original",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Vorhin 120 Punkte rausgehauen und jetzt wirfst du, als hättest du die Brille zu Hause vergessen?",
+      "minHumorLevel": "frech",
+      "when": {
+        "hasEarlier120": true
+      }
+    },
+    {
+      "id": "original-08",
+      "origin": "original",
+      "event": "throw",
+      "tier": "mid",
+      "text": "Du wolltest zaubern? Alter, bei deinen Würfen braucht selbst der Zauberstab erstmal ein Bier!",
+      "minHumorLevel": "frech",
+      "when": {
+        "claimMagic": true
+      }
+    },
+    {
+      "id": "original-09",
+      "origin": "original",
+      "event": "throw",
+      "tier": "any",
+      "text": "Die anderen beiden können schon mal anfangen, Ausreden zu sammeln!",
+      "minHumorLevel": "frech",
+      "when": {
+        "remainingMax": 50,
+        "playersAtLeast": 3
+      }
+    },
+    {
+      "id": "original-10",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "{name}, du alter Dart-Ganove! Noch 34 Punkte bis zum Sieg! Doppel 17, und die anderen beiden dürfen dir die Krone aufsetzen!",
+      "minHumorLevel": "frech",
+      "when": {
+        "remainingExact": 34,
+        "playersAtLeast": 3,
+        "outRuleExact": "double"
+      }
+    },
+    {
+      "id": "original-11",
+      "origin": "original",
+      "event": "bust",
+      "tier": "any",
+      "text": "Triple kann man werfen, muss man aber auch treffen, ne?",
+      "minHumorLevel": "frech",
+      "when": {
+        "hasTriple": true
+      }
+    },
+    {
+      "id": "original-12",
+      "origin": "original",
+      "event": "bust",
+      "tier": "any",
+      "text": "{name}, die Triple waren größer als dein Rest, das tut doppelt weh!",
+      "minHumorLevel": "frech",
+      "when": {
+        "tripleOvershot": true
+      }
+    },
+    {
+      "id": "original-13",
+      "origin": "original",
+      "event": "throw",
+      "tier": "good",
+      "text": "{name}, du legst ja los wie ein Profi! Hat dir jemand heimlich Zielwasser in die Cola gekippt?",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-14",
+      "origin": "original",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Hast du gerade mit den Pfeilen gewürfelt oder tatsächlich auf die Scheibe gezielt? {opponentName} lacht sich wahrscheinlich gerade kaputt!",
+      "minHumorLevel": "frech",
+      "when": {
+        "opponentNameRequired": true
+      }
+    },
+    {
+      "id": "original-15",
+      "origin": "original",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, du spielst Dart wie ein Bagger mit plattem Reifen – es geht vorwärts, aber verdammt langsam!",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-16",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "Willst du noch mitspielen oder ihm gleich den Pokal polieren?",
+      "minHumorLevel": "frech",
+      "when": {
+        "opponentNearWin": true
+      }
+    },
+    {
+      "id": "original-17",
+      "origin": "original",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Mit 24 Punkten holst du Markus höchstens ein, wenn der zwischendurch einschläft! Die Scheibe hat heute echt Glück mit dir!",
+      "minHumorLevel": "frech",
+      "when": {
+        "pointsExact": 24,
+        "opponentNearWin": true,
+        "otherPlayerNameExact": "Markus"
+      }
+    },
+    {
+      "id": "original-18",
+      "origin": "original",
+      "event": "invalid_input",
+      "tier": "any",
+      "text": "Alter, hast du heimlich einen vierten Pfeil eingepackt?",
+      "minHumorLevel": "frech",
+      "when": {
+        "reason": "too_many_darts",
+        "maxDartsExact": 3
+      }
+    },
+    {
+      "id": "original-19",
+      "origin": "original",
+      "event": "correction",
+      "tier": "any",
+      "text": "{name}, na endlich! Die Zahlen haben wir jetzt eingefangen. Die Pfeile waren schneller als die Verständigung!",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-20",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "{leaderName} steht schon mit einem Bein auf dem Siegerpodest! Jetzt musst du aber den Turbo einschalten!",
+      "minHumorLevel": "frech",
+      "when": {
+        "opponentNearWin": true,
+        "leaderNameRequired": true
+      }
+    },
+    {
+      "id": "original-21",
+      "origin": "original",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, was war das denn? Hast du mit geschlossenen Augen geworfen oder hat die Scheibe Angst vor dir?",
+      "minHumorLevel": "frech",
+      "when": {
+        "pointsMax": 35
+      }
+    },
+    {
+      "id": "original-22",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "Nicht einschlafen an der Scheibe!",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-23",
+      "origin": "original",
+      "event": "throw",
+      "tier": "any",
+      "text": "Der dritte Pfeil war wohl ein Warnschuss für die Tapete! Die Scheibe hat jedenfalls nichts davon mitbekommen!",
+      "minHumorLevel": "frech",
+      "when": {
+        "lastDartMissed": true,
+        "maxDartsExact": 3
+      }
+    },
+    {
+      "id": "original-24",
+      "origin": "original",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, du wirfst die Pfeile, als müsstest du die Scheibe bezahlen, wenn du sie richtig triffst! Ein bisschen mehr Mut, mein Freund!",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-25",
+      "origin": "original",
+      "event": "throw",
+      "tier": "mid",
+      "text": "Die Scheibe hat schon gedacht, du wirfst mit Gummibärchen! Jetzt kommst du langsam in Fahrt!",
+      "minHumorLevel": "frech",
+      "when": {
+        "priorLowTurn": true
+      }
+    },
+    {
+      "id": "original-26",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "Jetzt zeig den beiden mal, dass du nicht nur zum Biertrinken gekommen bist!",
+      "minHumorLevel": "frech",
+      "when": {
+        "playersAtLeast": 3
+      }
+    },
+    {
+      "id": "original-27",
+      "origin": "original",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Mit der Punktzahl erschreckst du höchstens eine Fliege auf der Dartscheibe!",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-28",
+      "origin": "original",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, solide, endlich mal ohne Tapetenschaden!",
+      "minHumorLevel": "frech"
+    },
+    {
+      "id": "original-29",
+      "origin": "original",
+      "event": "invalid_input",
+      "tier": "any",
+      "text": "Moment, Jungs, hier ist ja mehr Durcheinander als auf einem Bahnhof!",
+      "minHumorLevel": "frech",
+      "when": {
+        "reason": "ambiguous"
+      }
+    },
+    {
+      "id": "original-30",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "{previousPlayerName} hat gerade die Messlatte hochgelegt! Was machen deine drei Pfeile?",
+      "minHumorLevel": "frech",
+      "when": {
+        "previousPlayerPointsMin": 100,
+        "previousPlayerNameRequired": true,
+        "maxDartsExact": 3
+      }
+    },
+    {
+      "id": "original-31",
+      "origin": "original",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "Zeig den beiden mal, wo der Hammer hängt!",
+      "minHumorLevel": "frech",
+      "when": {
+        "playersAtLeast": 3
+      }
+    },
+    {
+      "id": "fsk16-01",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "{name}, was zur Hölle war das?! Selbst ein besoffener Maulwurf hätte die Scheibe besser gefunden!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-02",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Alter, bei deinem Talent braucht die Dartscheibe keinen Schutz. Die Wand dahinter schon!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-03",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "{name}, deine Pfeile haben offenbar gekündigt. Wegen mangelnder Führung!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-04",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Meine Fresse, {name}! Du triffst so wenig, selbst die Scheibe hat Langeweile!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-05",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Das war kein Dartwurf, das war eine öffentliche Hinrichtung deiner eigenen Statistik!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-06",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "{name}, wenn Scheiße werfen olympisch wäre, hätten wir gerade Gold gesehen!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-07",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Die gute Nachricht: Alle Pfeile sind wieder da. Die schlechte: Talent war nicht dabei!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-08",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "{name}, hast du die Augen zu oder ist das wirklich dein Ernst?",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-09",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "Alter Schwede! Der Pfeil hat mehr Orientierung verloren als ein Navi im Kuhstall!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-10",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "poor",
+      "text": "{name}, dein Punktestand bewegt sich langsamer als ein Rentner auf Glatteis!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-11",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, das war wie Sex mit Socken: technisch möglich, aber beeindruckt hat’s keinen!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-12",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "Na immerhin! Für drei Pfeile und zwei funktionierende Augen war das ganz akzeptabel!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "maxDartsExact": 3
+      }
+    },
+    {
+      "id": "fsk16-13",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, du bist der lebende Beweis, dass man auch ohne große Leistung beschäftigt aussehen kann!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-14",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "Alter, das war kein Angriff auf die Scheibe. Das war eine höfliche Anfrage!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-15",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, bei dir weiß man nie: Wird’s ein guter Wurf oder wieder ein Arbeitsunfall?",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-16",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "Scheiße, Mann! Du spielst wie WLAN mit einem Balken. Irgendwas kommt an, aber Freude macht’s nicht!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-17",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "Das war so mittelmäßig, selbst deine Gegner wissen nicht, ob sie lachen oder klatschen sollen!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-18",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, du machst Fortschritte! Noch ungefähr drei Leben und du bist Profi!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-19",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "Junge, du wirfst so vorsichtig, als müsstest du die Löcher in der Scheibe später selbst zuspachteln!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-20",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "mid",
+      "text": "{name}, der Wurf war wie lauwarmes Bier. Geht runter, aber keiner feiert’s!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-21",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "Holla, die Waldfee! {name} hat offenbar kurz sein Talent wiedergefunden!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-22",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "Verdammte Axt! Wer hat denn hier plötzlich den Profi-Modus eingeschaltet?",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-23",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "{name}, ich wollte dich gerade wieder verarschen, aber jetzt fehlen mir die Argumente!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-24",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "Leck mich am Ärmel! Der Mann kann tatsächlich Dart spielen! Ruft die Zeitung!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "maleWordingOk": true
+      }
+    },
+    {
+      "id": "fsk16-25",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "Junge, Junge! {name} hat gerade bewiesen, dass auch blinde Hühner manchmal mit Maschinengewehren treffen!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-26",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "Na sieh einer an! Eben noch Kreisklasse und jetzt plötzlich Champions League!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-27",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "{name}, wenn du so weitermachst, müssen die anderen beiden ihre Ausreden schon mal aufwärmen!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "playersAtLeast": 3
+      }
+    },
+    {
+      "id": "fsk16-28",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "Alter! Wer hat dir denn heimlich Zielwasser in die Blutbahn geschmuggelt?",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-29",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "Das war verdammt ordentlich! Die Scheibe hat gerade zum ersten Mal Respekt vor dir!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-30",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "good",
+      "text": "{name}, pass auf! Wenn du noch besser wirst, verlangen die anderen eine Dopingkontrolle!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-31",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "WAS ZUR HÖLLE?! {name}, hast du gerade deine Seele an den Dart-Teufel verkauft?",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-32",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "Heilige Scheiße! Die anderen suchen gerade den versteckten Profi unter deiner Verkleidung!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-33",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "{name}, du krankes Dart-Monster! Die Scheibe hat gerade innerlich ihre Kündigung geschrieben!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-34",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "Alter, hör auf damit! Die anderen wollten einen gemütlichen Abend und keinen öffentlichen Abriss!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-35",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "Meine Fresse, {name}! Das war so präzise, selbst ein Chirurg würde nervös werden!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-36",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "JUNGE! Was hast du denn gefrühstückt? Dartpfeile mit Schießpulver?",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-37",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "{name}, die anderen können schon mal den Notruf für ihr Selbstbewusstsein wählen!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-38",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "excellent",
+      "text": "Verdammte Hacke! Wenn das so weitergeht, braucht die Scheibe einen Anwalt!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-39",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "perfect180",
+      "text": "HUNDERTACHTZIG! ACH DU HEILIGE SCHEISSE! {name}, DU BIST DOCH NICHT MEHR GANZ NORMAL! DIE SCHEIBE BRAUCHT JETZT THERAPIE!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "maxDartsExact": 3
+      }
+    },
+    {
+      "id": "fsk16-40",
+      "origin": "fsk16",
+      "event": "throw",
+      "tier": "perfect180",
+      "text": "ONE HUNDRED AND EIGHTYYYY! LECK MICH FETT! {name}, die anderen beiden können ihre Pfeile einpacken und dich einfach anbeten!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "maxDartsExact": 3,
+        "playersAtLeast": 3
+      }
+    },
+    {
+      "id": "fsk16-41",
+      "origin": "fsk16",
+      "event": "bust",
+      "tier": "bust",
+      "text": "BUST! {name}, du hast gerade einen perfekten Plan genommen und mit Anlauf in die Scheiße geritten!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-42",
+      "origin": "fsk16",
+      "event": "bust",
+      "tier": "bust",
+      "text": "HAHAHA! {name}, das war wie mit Vollgas gegen eine geschlossene Garagentür!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-43",
+      "origin": "fsk16",
+      "event": "bust",
+      "tier": "bust",
+      "text": "ABGESCHMISSEN! Glückwunsch, {name}! Drei Pfeile geworfen und exakt nichts erreicht. Das muss man auch erst mal schaffen!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "maxDartsExact": 3
+      }
+    },
+    {
+      "id": "fsk16-44",
+      "origin": "fsk16",
+      "event": "bust",
+      "tier": "bust",
+      "text": "{name}, du warst so nah am Ziel und hast dich dann selbst aus dem Spiel gekegelt! Ganz großes Kino!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-45",
+      "origin": "fsk16",
+      "event": "bust",
+      "tier": "bust",
+      "text": "BUST! Alter, dein Kopf wollte gewinnen, aber deine Hand hatte offenbar einen anderen Vertrag unterschrieben!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-46",
+      "origin": "fsk16",
+      "event": "turn_start",
+      "tier": "any",
+      "text": "{name}, jetzt zittern die anderen! Du riechst den Sieg schon, und die beiden riechen nur noch ihre Niederlage!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "remainingMax": 50,
+        "playersAtLeast": 3
+      }
+    },
+    {
+      "id": "fsk16-47",
+      "origin": "fsk16",
+      "event": "win",
+      "tier": "win",
+      "text": "DOPPEL GETROFFEN! DAS DING IST DURCH! {name}, du verdammter Dart-König! Die anderen dürfen jetzt deine Pfeile polieren!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "outRuleExact": "double",
+        "playersAtLeast": 3
+      }
+    },
+    {
+      "id": "fsk16-48",
+      "origin": "fsk16",
+      "event": "win",
+      "tier": "win",
+      "text": "GAME OVER, IHR PFEIFEN! {name} HAT GEWONNEN! Für die anderen gibt’s heute nur noch Trostbier und dumme Ausreden!",
+      "minHumorLevel": "gnadenlos"
+    },
+    {
+      "id": "fsk16-49",
+      "origin": "fsk16",
+      "event": "win",
+      "tier": "win",
+      "text": "{name}, du hast sie gerade komplett zerlegt! Die beiden brauchen jetzt erstmal ein Bier und einen Termin beim Sportpsychologen!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "playersAtLeast": 3
+      }
+    },
+    {
+      "id": "fsk16-50",
+      "origin": "fsk16",
+      "event": "win",
+      "tier": "win",
+      "text": "WIR HABEN EINEN SIEGER! {name}, WAS FÜR EIN VERDAMMTER ABEND! Und ihr anderen zwei: Vielleicht versucht ihr’s nächstes Mal mit ZIELEN!",
+      "minHumorLevel": "gnadenlos",
+      "when": {
+        "playersAtLeast": 3
+      }
+    }
+  ]
+}

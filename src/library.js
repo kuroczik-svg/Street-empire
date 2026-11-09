@@ -5,6 +5,7 @@
 // Alles hier ist rein (kein DOM) und getestet.
 
 import { JOKES, EXTRAS, NEXT_CALLS, CORRECTION, S } from './jokes.js';
+import { convertCommentData } from './commentData.js';
 
 export const LIBRARY_FORMAT = 'dartbuddy-sprueche';
 export const LIBRARY_VERSION = 1;
@@ -124,12 +125,26 @@ function conditionFor(joke) {
   return (c) => !!c.leaderIsOther;
 }
 
+/** Fügt Töpfe zusammen: { kategorie: { pool: [...] } } bzw. { pool: [...] }. */
+function mergeInto(target, source, nested) {
+  for (const [k, v] of Object.entries(source || {})) {
+    if (nested) {
+      target[k] = target[k] || {};
+      for (const [pool, list] of Object.entries(v)) target[k][pool] = (target[k][pool] || []).concat(list);
+    } else {
+      target[k] = (target[k] || []).concat(v);
+    }
+  }
+}
+
 /**
- * Baut die Bibliothek aus eingebauten und eigenen Sprüchen.
+ * Baut die Bibliothek aus eingebauten Sprüchen, der Kommentarbibliothek
+ * (data/comments.de.json) und eigenen Sprüchen.
  * @param {object[]} custom – eigene Sprüche (validiert)
  * @param {string[]} hidden – Texte eingebauter Sprüche, die ausgeblendet sind
+ * @param {object|null} commentData – Inhalt von data/comments.de.json
  */
-export function buildLibrary(custom = [], hidden = []) {
+export function buildLibrary(custom = [], hidden = [], commentData = null) {
   const hide = new Set(hidden);
   const copy = (table) => {
     const out = {};
@@ -144,7 +159,16 @@ export function buildLibrary(custom = [], hidden = []) {
     EXTRAS: copy(EXTRAS),
     NEXT_CALLS: copy({ _: NEXT_CALLS })._,
     CORRECTION: copy({ _: CORRECTION })._,
+    INVALID: {},
   };
+  if (commentData) {
+    const conv = convertCommentData(commentData);
+    const t = conv.tables;
+    mergeInto(lib.JOKES, copy(t.JOKES), true);
+    mergeInto(lib.NEXT_CALLS, copy({ _: t.NEXT_CALLS })._, false);
+    mergeInto(lib.CORRECTION, copy({ _: t.CORRECTION })._, false);
+    mergeInto(lib.INVALID, copy(t.INVALID), true);
+  }
   for (const j of custom) {
     if (!j || j.enabled === false || !SITUATIONS[j.situation] || !LEVEL_TO_POOL[j.level]) continue;
     const sit = SITUATIONS[j.situation];
@@ -166,7 +190,7 @@ export function buildLibrary(custom = [], hidden = []) {
 }
 
 /** Alle eingebauten Sprüche, gruppiert nach Situation (für die Anzeige in der App). */
-export function builtInOverview() {
+export function builtInOverview(commentData = null) {
   const groups = [];
   const seen = new Set();
   const levelOf = (pool) => ({ f: 'freundlich', c: 'frech', g: 'gnadenlos', k: 'Kumpel-Sammlung', x: 'FSK 16' }[pool] || pool);
@@ -192,6 +216,25 @@ export function builtInOverview() {
   add('Spielsituationen', merge(...Object.values(EXTRAS)));
   add('Aufruf des nächsten Spielers', NEXT_CALLS);
   add('Nach einer Korrektur', CORRECTION);
+  if (commentData && Array.isArray(commentData.comments)) {
+    // Kommentarbibliothek v1.0: nach Ereignis und Stufe gruppiert, mit ID
+    const conv = convertCommentData(commentData);
+    const byId = new Map();
+    const collect = (tbl) => Object.values(tbl).forEach((v) => (Array.isArray(v) ? v : Object.values(v).flat()).forEach((e) => e.id && byId.set(e.id, e.t)));
+    collect(conv.tables.JOKES);
+    collect({ a: conv.tables.NEXT_CALLS });
+    collect(conv.tables.INVALID);
+    collect({ a: conv.tables.CORRECTION });
+    const label = {
+      throw: 'Wurf', bust: 'Bust', win: 'Sieg', turn_start: 'Aufruf', invalid_input: 'Ungültige Eingabe', correction: 'Korrektur',
+    };
+    const tierLabel = { poor: '0–25', mid: '26–59', good: '60–99', excellent: '100–179', perfect180: '180' };
+    const items = commentData.comments.map((c) => ({
+      text: byId.get(c.id) || c.text,
+      level: `${c.id} · ${label[c.event] || c.event}${tierLabel[c.tier] ? ` ${tierLabel[c.tier]}` : ''} · ab ${c.minHumorLevel}`,
+    }));
+    groups.unshift({ label: 'Kommentarbibliothek v1.0', items });
+  }
   return groups;
 }
 

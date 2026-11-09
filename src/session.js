@@ -55,9 +55,37 @@ export class GameSession {
       case 'commit':
         this.pending = r.pending;
         return this.maybeCommit();
+      case 'ask': {
+        // Spruch zur ungültigen Eingabe – ändert weder Punkte noch den Spieler
+        const st = this.state;
+        const quip = r.reason
+          ? this.commentator.invalidQuip?.(r.reason, {
+              name: st.byId[st.activePlayerId].name,
+              playerCount: st.players.length,
+              dartsPerTurn: this.game.config.dartsPerTurn,
+            })
+          : null;
+        return { action: 'ask', reason: r.reason, message: r.message, quip: quip || null };
+      }
       default:
         return { action: r.action, message: r.message };
     }
+  }
+
+  /** Spruch nach einer Korrektur – erst NACH der Neuberechnung aufrufen. */
+  correctionQuip(eventId) {
+    const ev = this.game.events.find((e) => e.id === eventId);
+    const st = this.state;
+    return this.commentator.correctionQuip({
+      name: ev && ev.playerId ? st.byId[ev.playerId].name : undefined,
+      playerCount: st.players.length,
+      dartsPerTurn: this.game.config.dartsPerTurn,
+    });
+  }
+
+  /** Spruch-Historie zum Speichern/Laden zusammen mit dem Spiel. */
+  exportCommentMemory() {
+    return this.commentator.exportMemory ? this.commentator.exportMemory() : [];
   }
 
   /** Antwort auf „Habe ich richtig verstanden?“ */

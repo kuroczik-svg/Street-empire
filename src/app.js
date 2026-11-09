@@ -90,6 +90,7 @@ function saveSettings() {
 
 function applySettings() {
   commentator.setHumor(settings.humor);
+  commentator.maleWordingOk = !!settings.maleWordingOk;
   speechOut.enabled = settings.speechOn;
   speechOut.volume = settings.volume;
   speechOut.voiceURI = settings.voiceURI;
@@ -101,6 +102,7 @@ function applySettings() {
 function persist() {
   if (!session) return;
   store.saveCurrentGame(session.game);
+  store.saveCommentMemory(session.exportCommentMemory());
   store.syncGameToHistory(session.game);
 }
 
@@ -192,13 +194,13 @@ function handleOutcome(r, { fromVoice = false, heard = '' } = {}) {
     }
     case 'wait':
     case 'ask':
-      ui.message = r.message + (heard ? '' : '');
+      ui.message = (r.quip ? `${r.quip} ` : '') + r.message;
       ui.messageKind = 'ask';
       ui.heardHtml = heardHtml;
       if (r.action === 'wait' && session.pending.length) ui.messageActions = 'missing';
       render();
       if (fromVoice || r.action === 'ask') {
-        speak([r.message]).then(() => {
+        speak(r.quip ? [r.quip, r.message] : [r.message], r.quip ? 2 : 1).then(() => {
           if (fromVoice && settings.micMode === 'button' && screen === 'game') speechIn.start();
         });
       }
@@ -682,7 +684,7 @@ async function editTurnDialog(eventId) {
     if (r.applied) {
       persist();
       toast('Spieler getauscht – Stand neu berechnet.');
-      speak([commentator.correctionQuip()], 2);
+      speak([session.correctionQuip(eventId)], 2);
     }
     return render();
   }
@@ -710,7 +712,7 @@ async function editTurnDialog(eventId) {
   if (r.applied) {
     persist();
     toast('Korrigiert – Spielstand komplett neu berechnet.');
-    speak([commentator.correctionQuip()], 2);
+    speak([session.correctionQuip(eventId)], 2);
   }
   render();
 }
@@ -801,6 +803,7 @@ function renderSettings() {
         <input id="ww" class="input" data-field="wakeWord" value="${esc(settings.wakeWord)}" maxlength="20" />
       </div>
       <label class="switch"><span><b>Vor dem Buchen bestätigen</b><br><span class="small muted">Jede vollständige Aufnahme erst nach Tippen auf „Buchen“ übernehmen</span></span><input type="checkbox" data-field="confirmBeforeCommit" ${settings.confirmBeforeCommit ? 'checked' : ''} /></label>
+      <label class="switch"><span><b>Männerrunde</b><br><span class="small muted">Erlaubt Sprüche wie „Der Mann kann tatsächlich Dart spielen!“</span></span><input type="checkbox" data-field="maleWordingOk" ${settings.maleWordingOk ? 'checked' : ''} /></label>
       <label class="switch"><span><b>Checkout-Wege anzeigen</b></span><input type="checkbox" data-field="showCheckout" ${settings.showCheckout ? 'checked' : ''} /></label>
       ${speechIn.supported ? '' : '<p class="notice">Dieser Browser bietet keine Spracherkennung. Am besten funktioniert Chrome (Android/Desktop) oder Safari (iOS). Die manuelle Eingabe geht immer – auch offline.</p>'}
     </section>
@@ -1135,7 +1138,7 @@ function onInput(e) {
     if (f === 'volume') {
       settings.volume = Number(el.value);
       document.getElementById('vol-out').textContent = `${Math.round(settings.volume * 100)}%`;
-    } else if (f === 'speechOn' || f === 'confirmBeforeCommit' || f === 'showCheckout') settings[f] = el.checked;
+    } else if (f === 'speechOn' || f === 'confirmBeforeCommit' || f === 'showCheckout' || f === 'maleWordingOk') settings[f] = el.checked;
     else if (f === 'voiceURI') settings.voiceURI = el.value;
     else if (f === 'wakeWord') settings.wakeWord = el.value.trim().toLowerCase() || 'buddy';
     saveSettings();
@@ -1175,6 +1178,7 @@ function init() {
     try {
       computeState(saved);
       session = new GameSession(saved, { commentator, confirmBeforeCommit: settings.confirmBeforeCommit });
+      commentator.importMemory(store.loadCommentMemory());
       const st = session.state;
       if (!st.finished) {
         screen = 'game';
@@ -1187,6 +1191,7 @@ function init() {
   }
   if (!setup) setup = newSetup(null);
   render();
+  loadCommentLibrary();
   if (speechOut.voicesLoaded) speechOut.voicesLoaded.then(() => screen === 'settings' && render());
   else if (speechOut.supported) window.speechSynthesis.onvoiceschanged = () => screen === 'settings' && render();
 
@@ -1194,6 +1199,20 @@ function init() {
   if ('serviceWorker' in navigator && location.protocol !== 'file:' && !isNativeApp) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+}
+
+/** Lädt die maßgebliche Kommentarbibliothek (offline aus dem App-Paket bzw. Service-Worker-Cache). */
+async function loadCommentLibrary() {
+  try {
+    const res = await fetch('data/comments.de.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    jokesScreen.setCommentData(data);
+  } catch (e) {
+    console.warn('Kommentarbibliothek nicht geladen:', e);
+    jokesScreen.setCommentData(null, String(e.message || e));
+  }
+  if (screen === 'jokes') render();
 }
 
 init();

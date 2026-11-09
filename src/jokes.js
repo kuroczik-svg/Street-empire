@@ -4,8 +4,8 @@
 //
 // Töpfe je Humor-Stufe:
 //   f = freundlich   c = frech   g = gnadenlos (Grundstock)
-//   k = Kumpel-Sammlung (Sprüche vom Dartabend Markus/Lukas/Wowa) – bei frech und gnadenlos
-//   x = FSK-16-Edition – nur bei gnadenlos
+//   k = frech-Sprüche der Kommentarbibliothek (data/comments.de.json) – bei frech und gnadenlos
+//   x = gnadenlos/FSK 16 – nur bei gnadenlos
 //
 // Ein Eintrag ist entweder ein Text oder ein Objekt mit Bedingungen:
 //   S('Text', { min, max, players, when, headline })
@@ -245,7 +245,6 @@ export const CORRECTION = {
   f: ['Alles klar, ist korrigiert!', 'Kein Problem, ist korrigiert!'],
   c: ['Korrigiert! Ordnung muss sein.'],
   g: ['Korrigiert. Ihr seid ein Haufen Chaoten.'],
-  k: ['Moment, Jungs, hier ist ja mehr Durcheinander als auf einem Bahnhof!'],
   x: ['Wer hat hier eigentlich wann geworfen? Ihr seid ein verdammter Haufen Chaoten!'],
 };
 
@@ -267,160 +266,10 @@ EXTRAS.oneDart = {
 };
 
 // =====================================================================
-// KUMPEL-SAMMLUNG – Sprüche vom Dartabend mit Markus, Lukas und Wowa
-// (Topf „k“: bei frech und gnadenlos)
+// Die 81 Sprüche der Kommentarbibliothek v1.0 (31 vom Dartabend + 50 FSK-16)
+// stehen NICHT hier, sondern maßgeblich in data/comments.de.json
+// (eingebunden über src/commentData.js).
 // =====================================================================
-
-const MAX_THREE_DARTS = (c) => c.dartsPerTurn === 3;
-
-const K_BAD = [
-  S('{name}, hast du die Pfeile geworfen oder die Scheibe nur vorsichtig gestreichelt?', { max: 30 }),
-  S('Du wolltest zaubern? Alter, bei deinen Würfen braucht selbst der Zauberstab erstmal ein Bier!', { max: 44 }),
-  S('Triple kann man werfen, muss man aber auch treffen, ne?', { max: 44, when: (c) => !c.hasTripleHit }),
-  S('Du spielst Dart wie ein Bagger mit plattem Reifen – es geht vorwärts, aber verdammt langsam!', { min: 20, max: 59 }),
-  S('{name}, was war das denn? Hast du mit geschlossenen Augen geworfen oder hat die Scheibe Angst vor dir?', { max: 25 }),
-  S('Du wirfst die Pfeile, als müsstest du die Scheibe bezahlen, wenn du sie richtig triffst! Ein bisschen mehr Mut, mein Freund!', { max: 44 }),
-  S('Mit der Punktzahl erschreckst du höchstens eine Fliege auf der Dartscheibe!', { max: 25 }),
-  S('Hast du gerade mit den Pfeilen gewürfelt oder tatsächlich auf die Scheibe gezielt? {leader} lacht sich wahrscheinlich gerade kaputt!', { max: 30, when: (c) => c.leaderIsOther }),
-  S('Mit {pts} Punkten holst du {leader} höchstens ein, wenn der zwischendurch einschläft! Die Scheibe hat heute echt Glück mit dir!', { min: 1, max: 44, when: (c) => c.leaderIsOther && c.remaining - c.leaderRest >= 60 }),
-  S('Vorhin {prevBest} Punkte rausgehauen und jetzt wirfst du, als hättest du die Brille zu Hause vergessen?', { max: 35, when: (c) => c.bestBefore >= 100 }),
-];
-const K_WARNSCHUSS = S('Der dritte Pfeil war wohl ein Warnschuss für die Tapete! Die Scheibe hat jedenfalls nichts davon mitbekommen!', { when: (c) => c.thirdOnlyMiss });
-const K_VERSTAENDIGUNG = S('{name}, na endlich! Die Zahlen haben wir jetzt eingefangen. Die Pfeile waren schneller als die Verständigung!', { when: (c) => c.hadQuestion });
-const K_GOOD = [
-  S('{name}, du legst ja los wie ein Profi! Hat dir jemand heimlich Zielwasser in die Cola gekippt?', { min: 60, when: (c) => c.turnsBefore === 0 }),
-  S('Eben noch Pfeile spazieren getragen und jetzt spielst du wie Phil Taylor auf Koffein!', { min: 60, when: (c) => c.prevPoints !== null && c.prevPoints < 30 }),
-  S('Die Scheibe hat schon gedacht, du wirfst mit Gummibärchen! Jetzt kommst du langsam in Fahrt!', { min: 45, max: 99, when: (c) => c.prevPoints !== null && c.prevPoints < 30 }),
-  S('{name}, solide, endlich mal ohne Tapetenschaden!', { min: 45, max: 99, when: (c) => c.prevHadMiss && !c.hasMiss }),
-  S('Die anderen beiden können schon mal anfangen, Ausreden zu sammeln!', { min: 60, players: 3, when: (c) => c.rankAfter === 1 }),
-];
-const K_TON = [
-  S('Alter, du hast doch nur drei Pfeile und keine Maschinenpistole!', { when: MAX_THREE_DARTS }),
-  S('Alter, hast du heimlich einen vierten Pfeil eingepackt?', { when: MAX_THREE_DARTS }),
-];
-
-for (const cat of ['zero', 'low', 'mid', 'solid', 'good', 'ton', 'big']) JOKES[cat].k = [K_VERSTAENDIGUNG];
-JOKES.zero.k.push(...K_BAD);
-JOKES.low.k.push(...K_BAD, K_WARNSCHUSS);
-JOKES.mid.k.push(...K_BAD, K_WARNSCHUSS);
-JOKES.solid.k.push(...K_BAD, ...K_GOOD, K_WARNSCHUSS);
-JOKES.good.k.push(...K_GOOD, K_WARNSCHUSS);
-JOKES.ton.k.push(...K_GOOD, ...K_TON);
-JOKES.big.k.push(...K_GOOD, ...K_TON);
-JOKES.bust.k = [
-  S('{name}, die Triple waren größer als dein Rest, das tut doppelt weh!', { when: (c) => c.bustReason === 'überworfen' && c.bustDart && c.bustDart.mult === 3 }),
-];
-EXTRAS.oneDart.k = [
-  S('{name}, du alter Dart-Ganove! Noch {rest} Punkte bis zum Sieg! {route}, und die anderen beiden dürfen dir die Krone aufsetzen!', { players: 3 }),
-];
-NEXT_CALLS.k = [
-  'Na, dann schauen wir mal, ob {next} die Scheibe trifft oder nur die Wand dekoriert!',
-  '{next}, nicht einschlafen an der Scheibe!',
-  S('{next}, jetzt aber Gas geben, sonst brauchst du heute noch Stützräder für deine Pfeile!', { when: (c) => c.next.isLast }),
-  S('{next}, zeig mal, ob deine {nextBest} Punkte vorhin Können waren oder ein Betriebsunfall!', { when: (c) => c.next.bestTurn >= 100 }),
-  S('{leader} steht schon mit einem Bein auf dem Siegerpodest! {next}, jetzt musst du aber den Turbo einschalten!', { when: (c) => c.leaderId && c.leaderId !== c.next.id && c.leaderRest <= 80 && c.next.remaining - c.leaderRest >= 80 }),
-  S('{next}, willst du noch mitspielen oder {leader} gleich den Pokal polieren?', { when: (c) => c.leaderId && c.leaderId !== c.next.id && c.leaderRest <= 60 && c.next.remaining - c.leaderRest >= 100 }),
-  S('{next}, jetzt zeig den beiden mal, dass du nicht nur zum Biertrinken gekommen bist!', { players: 3 }),
-  S('{next}, zeig den beiden mal, wo der Hammer hängt!', { players: 3 }),
-  S('{name} hat gerade die Messlatte hochgelegt! {next}, was machen deine drei Pfeile?', { min: 100, when: (c) => MAX_THREE_DARTS(c) && !c.bust }),
-];
-
-// =====================================================================
-// FSK-16-EDITION – 50 Sprüche (Topf „x“: nur Humor-Stufe gnadenlos)
-// =====================================================================
-
-// 1. Katastrophale Würfe – 0 bis 25 Punkte
-const X_KATASTROPHE = [
-  S('{name}, was zur Hölle war das?! Selbst ein besoffener Maulwurf hätte die Scheibe besser gefunden!'),
-  S('Alter, bei deinem Talent braucht die Dartscheibe keinen Schutz. Die Wand dahinter schon!'),
-  S('{name}, deine Pfeile haben offenbar gekündigt. Wegen mangelnder Führung!'),
-  S('Meine Fresse, {name}! Du triffst so wenig, selbst die Scheibe hat Langeweile!'),
-  S('Das war kein Dartwurf, das war eine öffentliche Hinrichtung deiner eigenen Statistik!'),
-  S('{name}, wenn Scheiße werfen olympisch wäre, hätten wir gerade Gold gesehen!'),
-  S('Die gute Nachricht: Alle Pfeile sind wieder da. Die schlechte: Talent war nicht dabei!'),
-  S('{name}, hast du die Augen zu oder ist das wirklich dein Ernst?'),
-  S('Alter Schwede! Der Pfeil hat mehr Orientierung verloren als ein Navi im Kuhstall!'),
-  S('{name}, dein Punktestand bewegt sich langsamer als ein Rentner auf Glatteis!'),
-].map((e) => ({ ...e, max: 25 }));
-
-// 2. Mittelmäßige Würfe – 26 bis 59 Punkte
-const X_MITTEL = [
-  S("{name}, das war wie Sex mit Socken: technisch möglich, aber beeindruckt hat's keinen!"),
-  S('Na immerhin! Für drei Pfeile und zwei funktionierende Augen war das ganz akzeptabel!', { when: MAX_THREE_DARTS }),
-  S('{name}, du bist der lebende Beweis, dass man auch ohne große Leistung beschäftigt aussehen kann!'),
-  S('Alter, das war kein Angriff auf die Scheibe. Das war eine höfliche Anfrage!'),
-  S("{name}, bei dir weiß man nie: Wird's ein guter Wurf oder wieder ein Arbeitsunfall?"),
-  S("Scheiße, Mann! Du spielst wie WLAN mit einem Balken. Irgendwas kommt an, aber Freude macht's nicht!"),
-  S('Das war so mittelmäßig, selbst deine Gegner wissen nicht, ob sie lachen oder klatschen sollen!'),
-  S('{name}, du machst Fortschritte! Noch ungefähr drei Leben und du bist Profi!'),
-  S('Junge, du wirfst so vorsichtig, als müsstest du die Löcher in der Scheibe später selbst zuspachteln!'),
-  S("{name}, der Wurf war wie lauwarmes Bier. Geht runter, aber keiner feiert's!"),
-].map((e) => ({ ...e, min: 26, max: 59 }));
-
-// 3. Gute Würfe – 60 bis 99 Punkte
-const X_GUT = [
-  S('Holla, die Waldfee! {name} hat offenbar kurz sein Talent wiedergefunden!'),
-  S('Verdammte Axt! Wer hat denn hier plötzlich den Profi-Modus eingeschaltet?'),
-  S('{name}, ich wollte dich gerade wieder verarschen, aber jetzt fehlen mir die Argumente!'),
-  S('Leck mich am Ärmel! Der Mann kann tatsächlich Dart spielen! Ruft die Zeitung!'),
-  S('Junge, Junge! {name} hat gerade bewiesen, dass auch blinde Hühner manchmal mit Maschinengewehren treffen!'),
-  S('Na sieh einer an! Eben noch Kreisklasse und jetzt plötzlich Champions League!'),
-  S('{name}, wenn du so weitermachst, müssen die anderen beiden ihre Ausreden schon mal aufwärmen!', { players: 3 }),
-  S('Alter! Wer hat dir denn heimlich Zielwasser in die Blutbahn geschmuggelt?'),
-  S('Das war verdammt ordentlich! Die Scheibe hat gerade zum ersten Mal Respekt vor dir!'),
-  S('{name}, pass auf! Wenn du noch besser wirst, verlangen die anderen eine Dopingkontrolle!'),
-];
-
-// 4. Überragende Würfe – 100 bis 179 Punkte
-const X_UEBERRAGEND = [
-  S('WAS ZUR HÖLLE?! {name}, hast du gerade deine Seele an den Dart-Teufel verkauft?'),
-  S('Heilige Scheiße! Die anderen suchen gerade den versteckten Profi unter deiner Verkleidung!'),
-  S('{name}, du krankes Dart-Monster! Die Scheibe hat gerade innerlich ihre Kündigung geschrieben!'),
-  S('Alter, hör auf damit! Die anderen wollten einen gemütlichen Abend und keinen öffentlichen Abriss!'),
-  S('Meine Fresse, {name}! Das war so präzise, selbst ein Chirurg würde nervös werden!'),
-  S('JUNGE! Was hast du denn gefrühstückt? Dartpfeile mit Schießpulver?'),
-  S('{name}, die anderen können schon mal den Notruf für ihr Selbstbewusstsein wählen!'),
-  S('Verdammte Hacke! Wenn das so weitergeht, braucht die Scheibe einen Anwalt!'),
-];
-
-// 5. Die legendäre 180 – kommt ausschließlich bei einer echten 180
-const X_180 = [
-  S('HUNDERTACHTZIG! ACH DU HEILIGE SCHEISSE! {NAME}, DU BIST DOCH NICHT MEHR GANZ NORMAL! DIE SCHEIBE BRAUCHT JETZT THERAPIE!', { headline: true }),
-  S('ONE HUNDRED AND EIGHTYYYY! LECK MICH FETT! {name}, die anderen beiden können ihre Pfeile einpacken und dich einfach anbeten!', { players: 3 }),
-];
-
-// 6. Bust – überworfen oder ungültig ausgecheckt
-const X_BUST = [
-  S('BUST! {name}, du hast gerade einen perfekten Plan genommen und mit Anlauf in die Scheiße geritten!', { headline: true }),
-  S('HAHAHA! {name}, das war wie mit Vollgas gegen eine geschlossene Garagentür!'),
-  S('ABGESCHMISSEN! Glückwunsch, {name}! Drei Pfeile geworfen und exakt nichts erreicht. Das muss man auch erst mal schaffen!', { headline: true, when: MAX_THREE_DARTS }),
-  S('{name}, du warst so nah am Ziel und hast dich dann selbst aus dem Spiel gekegelt! Ganz großes Kino!'),
-  S('BUST! Alter, dein Kopf wollte gewinnen, aber deine Hand hatte offenbar einen anderen Vertrag unterschrieben!', { headline: true }),
-];
-
-// 7. Checkout, Sieg und letzte Nerven
-const X_FINISH_NERVEN = [
-  S('{name}, jetzt zittern die anderen! Du riechst den Sieg schon, und die beiden riechen nur noch ihre Niederlage!', { players: 3 }),
-];
-const X_SIEG = [
-  S('DOPPEL GETROFFEN! DAS DING IST DURCH! {name}, du verdammter Dart-König! Die anderen dürfen jetzt deine Pfeile polieren!', { when: (c) => c.lastDart && c.lastDart.mult === 2 }),
-  S("GAME OVER, IHR PFEIFEN! {NAME} HAT GEWONNEN! Für die anderen gibt's heute nur noch Trostbier und dumme Ausreden!"),
-  S('{name}, du hast sie gerade komplett zerlegt! Die beiden brauchen jetzt erstmal ein Bier und einen Termin beim Sportpsychologen!', { players: 3 }),
-  S("WIR HABEN EINEN SIEGER! {NAME}, WAS FÜR EIN VERDAMMTER ABEND! Und ihr anderen zwei: Vielleicht versucht ihr's nächstes Mal mit ZIELEN!", { players: 3 }),
-];
-
-JOKES.zero.x = X_KATASTROPHE;
-JOKES.low.x = X_KATASTROPHE;
-JOKES.mid.x = [...X_KATASTROPHE, ...X_MITTEL];
-JOKES.solid.x = X_MITTEL;
-JOKES.good.x = X_GUT;
-JOKES.ton.x = X_UEBERRAGEND;
-JOKES.big.x = X_UEBERRAGEND;
-JOKES.max.x = X_180;
-JOKES.bust.x = X_BUST;
-JOKES.win.x = X_SIEG;
-EXTRAS.finishRange.x = X_FINISH_NERVEN;
-EXTRAS.oneDart.x = X_FINISH_NERVEN;
 
 // Eigene FSK-16-Ergänzungen für Situationen mit anderen Spielern
 EXTRAS.rivalBust.x = [
@@ -432,9 +281,3 @@ EXTRAS.rivalLow.x = [
 ];
 EXTRAS.leaderChange.x = ['Thronwechsel, verdammt nochmal! {prev}, schwing deinen Hintern vom Sofa, {name} sitzt jetzt drauf!'];
 NEXT_CALLS.x = ['{next}, beweg deinen Hintern an die Scheibe!', '{next}, Schluss mit Bier – ran an die verdammte Scheibe!'];
-
-/** Anzahl der Sprüche der Sammlungen (für Tests/Übersicht). */
-export const COLLECTION_COUNTS = {
-  kumpel: K_BAD.length + K_GOOD.length + K_TON.length + 3 /* Warnschuss, Verständigung, Triple-Bust */ + 1 /* Ganove */ + 9 /* Aufrufe */ + 1 /* Bahnhof */,
-  fsk16: X_KATASTROPHE.length + X_MITTEL.length + X_GUT.length + X_UEBERRAGEND.length + X_180.length + X_BUST.length + X_FINISH_NERVEN.length + X_SIEG.length,
-};

@@ -13,6 +13,7 @@ const KEYS = {
   settings: 'dartbuddy.settings.v1',
   customJokes: 'dartbuddy.jokes.custom.v1',
   hiddenJokes: 'dartbuddy.jokes.hidden.v1',
+  commentMemory: 'dartbuddy.comment-history.v1',
 };
 
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -25,6 +26,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   wakeWord: 'buddy',
   confirmBeforeCommit: false,
   showCheckout: true,
+  maleWordingOk: false, // Sprüche wie „Der Mann kann tatsächlich Dart spielen!“
 });
 
 const MAX_HISTORY = 300;
@@ -100,6 +102,9 @@ export function createStore(storage) {
       write(KEYS.history, read(KEYS.history, []).filter((g) => g.id !== id));
     },
     clearHistory: () => write(KEYS.history, []),
+
+    loadCommentMemory: () => read(KEYS.commentMemory, []),
+    saveCommentMemory: (list) => write(KEYS.commentMemory, list),
 
     loadCustomJokes: () => read(KEYS.customJokes, []),
     saveCustomJokes: (list) => write(KEYS.customJokes, list),
