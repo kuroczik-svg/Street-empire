@@ -4,7 +4,7 @@ android {
     namespace = "de.dartbuddy.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "de.dartbuddy.app"
+        applicationId "de.dartbuddy.moderator"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Fortlaufende Versionsnummer aus dem GitHub-Build, damit Updates sauber erkannt werden
