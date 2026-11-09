@@ -311,3 +311,191 @@ export class SpeechIn {
     this.h.onIgnored?.(alts[0]);
   }
 }
+
+// ------------------------------------------------------------
+// Native App (Android/iOS via Capacitor)
+// ------------------------------------------------------------
+// Die Android-WebView kennt keine Web-Spracherkennung. In der App werden
+// deshalb native Plugins benutzt – mit derselben Schnittstelle wie oben:
+//   @capacitor-community/speech-recognition, @capacitor-community/text-to-speech
+
+function capacitor() {
+  const cap = typeof window !== 'undefined' ? window.Capacitor : null;
+  return cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform() ? cap : null;
+}
+
+function nativePlugin(name) {
+  const cap = capacitor();
+  if (!cap || typeof cap.registerPlugin !== 'function') return null;
+  if (typeof cap.isPluginAvailable === 'function' && !cap.isPluginAvailable(name)) return null;
+  return cap.registerPlugin(name);
+}
+
+export class NativeSpeechOut extends SpeechOut {
+  constructor(plugin) {
+    super();
+    this.plugin = plugin;
+    this.allVoices = [];
+    this.voicesLoaded = plugin
+      .getSupportedVoices()
+      .then((r) => {
+        this.allVoices = (r && r.voices) || [];
+      })
+      .catch(() => {});
+  }
+
+  get supported() {
+    return true;
+  }
+
+  germanVoices() {
+    return this.allVoices.filter((v) => /^de(-|_|$)/i.test(v.lang));
+  }
+
+  voiceIndex() {
+    if (!this.voiceURI) return undefined;
+    const i = this.allVoices.findIndex((v) => v.voiceURI === this.voiceURI);
+    return i >= 0 ? i : undefined;
+  }
+
+  stop() {
+    this.queueId++;
+    this.plugin.stop().catch(() => {});
+    if (this.speaking) {
+      this.speaking = false;
+      this.emit('end');
+    }
+  }
+
+  async speak(parts, { energy = 1 } = {}) {
+    const list = (Array.isArray(parts) ? parts : [parts]).filter((p) => p && p.trim());
+    if (!this.enabled || !list.length) return;
+    this.stop();
+    const myId = ++this.queueId;
+    const style = VOICE_STYLES[this.style] || VOICE_STYLES.kumpel;
+    this.speaking = true;
+    this.emit('start');
+    try {
+      for (let i = 0; i < list.length; i++) {
+        if (myId !== this.queueId) return;
+        const isShout = /[A-ZÄÖÜ]{4,}/.test(list[i]) || list[i].includes('!');
+        const boost = i === 0 ? energy * 0.06 : 0;
+        const opts = {
+          text: forSpeech(list[i]),
+          lang: 'de-DE',
+          rate: clamp(style.rate + boost + (isShout && energy >= 3 ? 0.08 : 0), 0.6, 1.6),
+          pitch: clamp(style.pitch + boost * 1.5 + (isShout && energy >= 3 ? 0.15 : 0), 0.5, 2),
+          volume: clamp(this.volume, 0, 1),
+          category: 'playback',
+          queueStrategy: 0,
+        };
+        const v = this.voiceIndex();
+        if (v !== undefined) opts.voice = v;
+        await this.plugin.speak(opts);
+      }
+    } catch {
+      // Sprachausgabe ist nur Beiwerk – Fehler dürfen das Spiel nicht stören
+    } finally {
+      if (myId === this.queueId) {
+        this.speaking = false;
+        this.emit('end');
+      }
+    }
+  }
+}
+
+export class NativeSpeechIn extends SpeechIn {
+  constructor(handlers, plugin) {
+    super(handlers);
+    this.plugin = plugin;
+    this.permission = null;
+    this.loopRunning = false;
+  }
+
+  get supported() {
+    return true;
+  }
+
+  async ensurePermission() {
+    if (this.permission === 'granted') return true;
+    let st = await this.plugin.checkPermissions();
+    if (st.speechRecognition !== 'granted') st = await this.plugin.requestPermissions();
+    this.permission = st.speechRecognition;
+    return this.permission === 'granted';
+  }
+
+  start() {
+    this.wantListening = true;
+    this.paused = false;
+    this.state();
+    this.loop();
+  }
+
+  async loop() {
+    if (this.loopRunning) return;
+    this.loopRunning = true;
+    try {
+      while (this.wantListening && !this.paused) {
+        if (!(await this.ensurePermission())) {
+          this.wantListening = false;
+          this.h.onError?.('Mikrofon-Zugriff verweigert. Bitte in den App-Einstellungen erlauben.');
+          break;
+        }
+        this.listening = true;
+        this.state();
+        let matches = [];
+        try {
+          const r = await this.plugin.start({ language: 'de-DE', maxResults: 5, partialResults: false, popup: false });
+          matches = (r && r.matches) || [];
+        } catch (e) {
+          // "No match" / "No speech input" sind normal (Stille) – alles andere melden
+          const msg = String((e && e.message) || e);
+          if (!/no match|no speech|didn.t understand|client side error|busy/i.test(msg)) {
+            this.h.onError?.(`Spracherkennung: ${msg}`);
+            this.wantListening = false;
+          }
+        }
+        this.listening = false;
+        if (this.mode === 'button') this.wantListening = false;
+        if (matches.length && !this.paused) this.handleFinal(matches);
+        if (this.mode === 'button') break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+    } finally {
+      this.loopRunning = false;
+      this.listening = false;
+      this.state();
+    }
+  }
+
+  stop() {
+    this.wantListening = false;
+    this.plugin.stop().catch(() => {});
+    this.listening = false;
+    this.state();
+  }
+
+  pause() {
+    if (!this.wantListening) return;
+    this.paused = true;
+    this.plugin.stop().catch(() => {});
+  }
+
+  resume() {
+    if (!this.paused) return;
+    this.paused = false;
+    if (this.wantListening && this.mode === 'wake') this.loop();
+  }
+}
+
+/** Liefert die passende Sprachausgabe: nativ in der App, sonst Web Speech API. */
+export function createSpeechOut() {
+  const p = nativePlugin('TextToSpeech');
+  return p ? new NativeSpeechOut(p) : new SpeechOut();
+}
+
+/** Liefert die passende Spracherkennung: nativ in der App, sonst Web Speech API. */
+export function createSpeechIn(handlers) {
+  const p = nativePlugin('SpeechRecognition');
+  return p ? new NativeSpeechIn(handlers, p) : new SpeechIn(handlers);
+}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DART BUDDY</string>
+    <string name="title_activity_main">DART BUDDY</string>
+    <string name="package_name">de.dartbuddy.app</string>
+    <string name="custom_url_scheme">de.dartbuddy.app</string>
+</resources>

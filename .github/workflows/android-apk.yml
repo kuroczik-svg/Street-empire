@@ -1,0 +1,68 @@
+# Baut die Android-App (APK) mit dem offiziellen Android-SDK des GitHub-Runners.
+# Ergebnis:
+#   * Artefakt „DartBuddy-APK“ am Workflow-Lauf (Actions → Lauf → Artifacts)
+#   * Vorabversion „apk-latest“ unter Releases – direkt vom Handy herunterladbar
+name: Android APK
+
+on:
+  push:
+    branches: [main, master, 'claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Tests (Engine, Parser, Kommentator, Abnahmetest)
+        run: npm test
+
+      - name: Web-App in das Android-Projekt kopieren
+        run: npm run android:sync
+
+      - name: APK bauen
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/DartBuddy.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DartBuddy-APK
+          path: DartBuddy.apk
+          if-no-files-found: error
+
+      - name: Vorabversion „apk-latest“ aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest DartBuddy.apk \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "DART BUDDY – neueste APK" \
+            --notes "Automatisch gebaut aus ${GITHUB_REF_NAME} (${GITHUB_SHA::7}). Installation: APK auf dem Android-Handy öffnen und „Installation aus unbekannten Quellen“ für den Browser bzw. Dateimanager erlauben."

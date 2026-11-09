@@ -7,7 +7,7 @@ Eine deutschsprachige, mobiloptimierte Dart-App (PWA), die als humorvoller Spiel
 
 ```bash
 npm start          # http://localhost:8080  (keine Abhängigkeiten nötig, Node ≥ 18)
-npm test           # 86 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
+npm test           # 90 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
 ```
 
 Optionaler Browser-Abnahmetest (Playwright + Chromium, simulierte Spracherkennung):
@@ -53,12 +53,30 @@ funktionieren immer – auch offline** (Service Worker).
 - **Zurücksetzen/Beenden/Löschen** nur nach Bestätigung.
 - Die Statistik wird aus den gespeicherten Spielen berechnet → ein rückgängig gemachter Sieg verschwindet auch aus der Statistik.
 
-## Später als Android-/iPhone-App
+## Android-App (APK)
 
-Die App ist eine reine statische Web-App ohne Build-Schritt. Mit [Capacitor](https://capacitorjs.com/)
-lässt sie sich direkt verpacken (`npx cap init`, `webDir` = Projektordner bzw. Kopie der Dateien,
-`npx cap add android` / `ios`). Für native Spracherkennung kann `speech.js` gegen ein Capacitor-Plugin
-ausgetauscht werden – die Schnittstelle (`onResult(alternativen[])`) bleibt gleich.
+Das Android-Projekt liegt in `android/` (Capacitor 8). Die Android-WebView kann keine
+Web-Spracherkennung – in der App laufen Mikrofon und Sprachausgabe deshalb über native Plugins
+(`@capacitor-community/speech-recognition`, `@capacitor-community/text-to-speech`). `speech.js`
+wählt automatisch: nativ in der App, Web Speech API im Browser.
+
+**Automatisch über GitHub Actions** (`.github/workflows/android-apk.yml`): Jeder Push baut die APK.
+Download danach unter *Releases → „DART BUDDY – neueste APK“* (direkt am Handy) oder als Artefakt am
+Workflow-Lauf. Installation: APK öffnen, „Installation aus unbekannten Quellen“ erlauben.
+
+**Lokal** (Android Studio bzw. Android-SDK + JDK 21 nötig):
+
+```bash
+npm ci
+npm run android:apk      # → android/app/build/outputs/apk/debug/app-debug.apk
+# oder: npm run android:sync && npx cap open android
+```
+
+Nach Änderungen an der Web-App immer `npm run android:sync` ausführen. Icons/Splash neu erzeugen:
+`NODE_PATH=$(npm root -g) node scripts/android-icons.cjs .`
+
+Die APK ist ein Debug-Build (zum Installieren und Testen). Für den Play Store braucht es einen
+Release-Build mit eigenem Signaturschlüssel. iPhone: `npx cap add ios` auf einem Mac mit Xcode.
 
 ## Erweiterung: Online-KI für Sprüche
 

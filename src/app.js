@@ -10,7 +10,7 @@ import {
 import { parseThrowInput } from './parser.js';
 import { GameSession } from './session.js';
 import { Commentator, HUMOR_LEVELS, formatRoute } from './commentator.js';
-import { SpeechOut, SpeechIn, VOICE_STYLES } from './speech.js';
+import { createSpeechOut, createSpeechIn, VOICE_STYLES } from './speech.js';
 import { createStore, ensureProfile, aggregateStats } from './storage.js';
 
 const $app = document.getElementById('app');
@@ -22,7 +22,7 @@ const store = createStore();
 let settings = store.loadSettings();
 let profiles = store.loadProfiles();
 const commentator = new Commentator({ humor: settings.humor });
-const speechOut = new SpeechOut();
+const speechOut = createSpeechOut();
 let session = null;
 let screen = 'home';
 let statsTab = 'ranking';
@@ -108,7 +108,7 @@ function speak(parts, energy = 1) {
 }
 
 // ------------------------------------------------------------ Sprache
-const speechIn = new SpeechIn({
+const speechIn = createSpeechIn({
   onResult: (alts) => {
     ui.interim = '';
     if (!session || screen !== 'game') return;
@@ -1157,9 +1157,11 @@ function init() {
   }
   if (!setup) setup = newSetup(null);
   render();
-  if (speechOut.supported) window.speechSynthesis.onvoiceschanged = () => screen === 'settings' && render();
+  if (speechOut.voicesLoaded) speechOut.voicesLoaded.then(() => screen === 'settings' && render());
+  else if (speechOut.supported) window.speechSynthesis.onvoiceschanged = () => screen === 'settings' && render();
 
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && !isNativeApp) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 }
