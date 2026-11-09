@@ -58,6 +58,9 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace
           cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/DartBuddy.apk"
 
+      - name: Signatur prüfen (gleicher Schlüssel wie vorherige Versionen)
+        run: node scripts/check-apk-signature.mjs DartBuddy.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: DartBuddy-APK
@@ -73,4 +76,4 @@ jobs:
             --prerelease \
             --target "$GITHUB_SHA" \
             --title "DART BUDDY – neueste APK" \
-            --notes "Automatisch gebaut aus ${GITHUB_REF_NAME} (${GITHUB_SHA::7}). Installation: APK auf dem Android-Handy öffnen und „Installation aus unbekannten Quellen“ für den Browser bzw. Dateimanager erlauben."
+            --notes "Version 1.0.${GITHUB_RUN_NUMBER}, automatisch gebaut aus ${GITHUB_REF_NAME} (${GITHUB_SHA::7}). Installation: APK auf dem Android-Handy öffnen und „Installation aus unbekannten Quellen“ für den Browser bzw. Dateimanager erlauben."
