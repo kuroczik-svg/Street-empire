@@ -1,0 +1,12 @@
+{
+  "name": "dart-buddy",
+  "version": "1.0.0",
+  "description": "DART BUDDY – der freche KI-Dart-Moderator (mobile Web-App / PWA)",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "node server.js"
+  },
+  "license": "UNLICENSED"
+}
