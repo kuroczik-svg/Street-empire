@@ -324,11 +324,27 @@ function capacitor() {
   return cap && typeof cap.isNativePlatform === 'function' && cap.isNativePlatform() ? cap : null;
 }
 
+/** Läuft die Seite in der nativen App (Android/iOS)? */
+export function isNativeApp() {
+  return !!capacitor();
+}
+
 function nativePlugin(name) {
   const cap = capacitor();
-  if (!cap || typeof cap.registerPlugin !== 'function') return null;
-  if (typeof cap.isPluginAvailable === 'function' && !cap.isPluginAvailable(name)) return null;
-  return cap.registerPlugin(name);
+  if (!cap) return null;
+  const headers = Array.isArray(cap.PluginHeaders) ? cap.PluginHeaders : null;
+  const known = headers ? headers.some((h) => h.name === name) : null;
+  // 1. offizieller Weg: registerPlugin aus @capacitor/core (vendor/capacitor.js)
+  if (typeof cap.registerPlugin === 'function') {
+    if (known === false) return null;
+    if (known === null && typeof cap.isPluginAvailable === 'function' && !cap.isPluginAvailable(name)) return null;
+    return cap.registerPlugin(name);
+  }
+  // 2. Rückfallebene: direkt über die native Brücke (falls capacitor.js nicht geladen wurde)
+  if (known && typeof cap.nativePromise === 'function') {
+    return new Proxy({}, { get: (_, method) => (options) => cap.nativePromise(name, String(method), options || {}) });
+  }
+  return null;
 }
 
 export class NativeSpeechOut extends SpeechOut {
@@ -491,11 +507,18 @@ export class NativeSpeechIn extends SpeechIn {
 /** Liefert die passende Sprachausgabe: nativ in der App, sonst Web Speech API. */
 export function createSpeechOut() {
   const p = nativePlugin('TextToSpeech');
-  return p ? new NativeSpeechOut(p) : new SpeechOut();
+  if (p) return new NativeSpeechOut(p);
+  const s = new SpeechOut();
+  if (isNativeApp()) s.synth = null;
+  return s;
 }
 
 /** Liefert die passende Spracherkennung: nativ in der App, sonst Web Speech API. */
 export function createSpeechIn(handlers) {
   const p = nativePlugin('SpeechRecognition');
-  return p ? new NativeSpeechIn(handlers, p) : new SpeechIn(handlers);
+  if (p) return new NativeSpeechIn(handlers, p);
+  const s = new SpeechIn(handlers);
+  // In der App funktioniert die Browser-Spracherkennung der WebView nicht – dann lieber ehrlich „nicht verfügbar“
+  if (isNativeApp()) s.Rec = null;
+  return s;
 }

@@ -7,7 +7,7 @@ Eine deutschsprachige, mobiloptimierte Dart-App (PWA), die als humorvoller Spiel
 
 ```bash
 npm start          # http://localhost:8080  (keine Abhängigkeiten nötig, Node ≥ 18)
-npm test           # 142 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
+npm test           # 145 automatisierte Tests (Engine, Parser, Kommentator, Speicher, Abnahmetest)
 ```
 
 Optionaler Browser-Abnahmetest (Playwright + Chromium, simulierte Spracherkennung):
@@ -118,6 +118,10 @@ npm ci
 npm run android:apk      # → android/app/build/outputs/apk/debug/app-debug.apk
 # oder: npm run android:sync && npx cap open android
 ```
+
+Die App lädt `vendor/capacitor.js` (= `@capacitor/core/dist/capacitor.js`): Ohne diese Laufzeit
+gibt es in der App kein `Capacitor.registerPlugin`, und Mikrofon/Sprachausgabe würden nicht nativ laufen.
+`tests/e2e/android-bridge-e2e.cjs` prüft genau das mit der echten Android-Brücke und läuft bei jedem APK-Build.
 
 Nach Änderungen an der Web-App immer `npm run android:sync` ausführen. Icons/Splash neu erzeugen:
 `NODE_PATH=$(npm root -g) node scripts/android-icons.cjs .`

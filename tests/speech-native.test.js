@@ -91,3 +91,40 @@ test('App: verweigertes Mikrofon gibt eine verständliche Meldung', async () => 
   assert.match(errors[0], /verweigert/);
   assert.equal(sin.wantListening, false);
 });
+
+test('App ohne capacitor.js: Rückfallebene über die native Brücke (nativePromise + PluginHeaders)', async () => {
+  const calls = [];
+  globalThis.window = {
+    Capacitor: {
+      isNativePlatform: () => true,
+      PluginHeaders: [{ name: 'SpeechRecognition', methods: [] }, { name: 'TextToSpeech', methods: [] }],
+      nativePromise: async (plugin, method, options) => {
+        calls.push(`${plugin}.${method}`);
+        if (method === 'checkPermissions') return { speechRecognition: 'granted' };
+        if (method === 'start') return { matches: ['Doppel 20 5 12'] };
+        if (method === 'getSupportedVoices') return { voices: [] };
+        return {};
+      },
+    },
+    webkitSpeechRecognition: function () {}, // wie in der Android-WebView vorhanden – darf NICHT benutzt werden
+  };
+  const { createSpeechIn, NativeSpeechIn } = await import('../src/speech.js?fallback');
+  const results = [];
+  const sin = createSpeechIn({ onResult: (a) => results.push(a) });
+  assert.ok(sin instanceof NativeSpeechIn);
+  sin.start();
+  await tick();
+  assert.deepEqual(results, [['Doppel 20 5 12']]);
+  assert.ok(calls.includes('SpeechRecognition.start'));
+});
+
+test('App ohne Spracherkennungs-Plugin: ehrlich „nicht verfügbar“ statt Browser-Erkennung der WebView', async () => {
+  globalThis.window = {
+    Capacitor: { isNativePlatform: () => true, PluginHeaders: [], registerPlugin: () => ({}), isPluginAvailable: () => false },
+    webkitSpeechRecognition: function () {},
+    speechSynthesis: {},
+  };
+  const { createSpeechIn, createSpeechOut } = await import('../src/speech.js?missing');
+  assert.equal(createSpeechIn({ onResult() {} }).supported, false);
+  assert.equal(createSpeechOut().supported, false);
+});

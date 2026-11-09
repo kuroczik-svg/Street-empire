@@ -40,6 +40,14 @@ jobs:
       - name: Tests (Engine, Parser, Kommentator, Abnahmetest)
         run: npm test
 
+      - name: Browser-Tests (inkl. Android-Brücke wie in der APK)
+        run: |
+          npm install --no-save playwright@1
+          npx playwright install --with-deps chromium
+          node tests/e2e/android-bridge-e2e.cjs
+          node tests/e2e/browser-acceptance.cjs
+          node tests/e2e/jokes-e2e.cjs
+
       - name: Web-App in das Android-Projekt kopieren
         run: npm run android:sync
 

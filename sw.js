@@ -1,6 +1,6 @@
 // DART BUDDY – Service Worker: App-Shell offline verfügbar machen.
 // Punkteberechnung und manuelle Eingabe laufen komplett lokal.
-const CACHE = 'dartbuddy-v3';
+const CACHE = 'dartbuddy-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -22,6 +22,7 @@ const ASSETS = [
   './src/jokesScreen.js',
   './src/commentData.js',
   './data/comments.de.json',
+  './vendor/capacitor.js',
 ];
 
 self.addEventListener('install', (e) => {
