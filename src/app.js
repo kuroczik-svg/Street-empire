@@ -12,6 +12,7 @@ import { GameSession } from './session.js';
 import { Commentator, HUMOR_LEVELS, HUMOR_LABELS, formatRoute } from './commentator.js';
 import { createSpeechOut, createSpeechIn, VOICE_STYLES, isNativeApp } from './speech.js';
 import { continuousScore } from './listenFilter.js';
+import { describeTurn } from './turnDisplay.js';
 import { createStore, ensureProfile, aggregateStats } from './storage.js';
 import { createJokesScreen } from './jokesScreen.js';
 
@@ -39,6 +40,8 @@ const ui = {
   micState: 'idle',
   flash: '',
   lastResult: null,
+  lastHeard: null,
+  pendingHeard: '',
 };
 
 // ------------------------------------------------------------ Hilfen
@@ -197,6 +200,7 @@ function handleOutcome(r, { fromVoice = false, heard = '', continuous = false } 
       return;
     }
     if (r.action === 'wait') {
+      if (heard) ui.pendingHeard = [ui.pendingHeard, heard].filter(Boolean).join(' · ');
       ui.ignored = '';
       ui.message = r.message;
       ui.messageKind = 'ask';
@@ -215,6 +219,10 @@ function handleOutcome(r, { fromVoice = false, heard = '', continuous = false } 
       ui.message = a.text;
       ui.messageKind = 'announce';
       ui.lastResult = r.result;
+      const lastEvent = session.game.events.at(-1);
+      const rawHeard = [ui.pendingHeard, heard].filter(Boolean).join(' · ');
+      ui.lastHeard = rawHeard && lastEvent?.type === 'turn' ? { eventId: lastEvent.id, text: rawHeard } : null;
+      ui.pendingHeard = '';
       ui.flash = r.result.checkout ? 'flash-win' : r.result.points === 180 ? 'flash-max' : r.result.bust ? 'flash-bust' : '';
       persist();
       render();
@@ -224,6 +232,7 @@ function handleOutcome(r, { fromVoice = false, heard = '', continuous = false } 
     }
     case 'wait':
     case 'ask':
+      if (r.action === 'wait' && heard) ui.pendingHeard = [ui.pendingHeard, heard].filter(Boolean).join(' · ');
       ui.message = (r.quip ? `${r.quip} ` : '') + r.message;
       ui.messageKind = 'ask';
       ui.heardHtml = heardHtml;
@@ -236,6 +245,7 @@ function handleOutcome(r, { fromVoice = false, heard = '', continuous = false } 
       }
       return;
     case 'confirm':
+      if (heard) ui.pendingHeard = [ui.pendingHeard, heard].filter(Boolean).join(' · ');
       ui.message = r.message;
       ui.messageKind = 'ask';
       ui.messageActions = 'confirm';
@@ -250,6 +260,7 @@ function handleOutcome(r, { fromVoice = false, heard = '', continuous = false } 
       render();
       return;
     case 'undone':
+      ui.pendingHeard = '';
       ui.message = r.message;
       ui.messageKind = 'warn';
       persist();
@@ -456,6 +467,8 @@ function startGameFromSetup() {
   ui.message = `Los geht's! ${cfg.startScore}, ${OUT_MODES[cfg.outMode]}. ${first}, du beginnst!`;
   ui.messageKind = 'announce';
   ui.lastResult = null;
+  ui.lastHeard = null;
+  ui.pendingHeard = '';
   screen = 'game';
   render();
   speak([ui.message], 2);
@@ -486,6 +499,22 @@ function renderGame() {
     }</div>`;
   }
 
+  // Sichtbar bleiben auch die Pfeile der soeben automatisch gebuchten Aufnahme.
+  const lastTurn = [...st.log].reverse().find((entry) => entry.type === 'turn');
+  const pending = session.pending.length > 0;
+  const displayDarts = pending ? session.pending : (lastTurn?.darts || []);
+  const calculation = describeTurn(displayDarts, pending ? ev.preview : lastTurn);
+  const calcWho = pending ? active.name : (lastTurn ? st.byId[lastTurn.playerId]?.name || 'Spieler' : '');
+  const calcTitle = pending ? `${calcWho} · laufende Aufnahme` : lastTurn ? `${calcWho} · letzte Aufnahme` : 'Wurfrechnung';
+  const calcHeard = pending ? ui.pendingHeard : (ui.lastHeard?.eventId === lastTurn?.id ? ui.lastHeard.text : '');
+  const calcHtml = displayDarts.length ? `
+    <section class="calc-panel" aria-label="Erkannte Pfeile und Rechnung">
+      <div class="calc-title">${esc(calcTitle)}</div>
+      ${calcHeard ? `<div class="calc-heard">Gehört: „${esc(calcHeard)}“</div>` : ''}
+      <div class="calc-darts">${calculation.darts.map((d, i) => `<div class="calc-dart ${d.ignored ? 'ignored' : ''}"><span>${i + 1}. ${esc(d.label)}</span><strong>${d.value}</strong></div>`).join('')}</div>
+      <div class="calc-equation">${esc(calculation.calculation)} = <strong>${calculation.thrown}</strong></div>
+      <div class="calc-booked">${calculation.bust ? '<strong class="bust">Bust – 0 Punkte gebucht</strong>' : calculation.checkout ? '<strong class="win">Checkout!</strong>' : pending ? 'Noch nicht gebucht' : `Gebucht: ${calculation.booked} Punkte`}</div>
+    </section>` : '<section class="calc-panel calc-empty" aria-label="Wurfrechnung">Erkannte Zahlen und Rechnung erscheinen hier.</section>';
   let actions = '';
   if (ui.messageActions === 'confirm') {
     actions = `<div class="actions"><button class="btn primary" data-action="cand-yes">✔ Ja, stimmt</button><button class="btn" data-action="cand-no">✖ Nein</button></div>`;
@@ -522,6 +551,7 @@ function renderGame() {
         <div class="slots" style="--n:${Math.min(cfg.dartsPerTurn, 6)}">${slots.join('')}</div>
         ${previewHtml}
       </section>
+      ${calcHtml}
 
       <div class="bubble ${ui.messageKind}" id="bubble">
         ${ui.message ? esc(ui.message) : '<span class="muted">Bereit. Sag die Pfeile an oder tippe sie ein.</span>'}

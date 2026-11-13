@@ -156,6 +156,27 @@ h2 { font-size: 1.2rem; }
 .preview .bust { color: var(--red); }
 .preview .win { color: var(--gold); }
 
+.calc-panel {
+  border: 1px solid var(--blue); border-radius: 16px; background: var(--card2);
+  padding: 14px 16px; display: grid; gap: 10px;
+}
+.calc-title { font-size: 0.85rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.calc-heard { font-size: 0.95rem; color: var(--muted); overflow-wrap: anywhere; }
+.calc-darts { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
+.calc-dart {
+  border: 1px solid var(--line); background: var(--bg2); padding: 10px 8px; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; font-variant-numeric: tabular-nums;
+}
+.calc-dart span { font-size: 0.95rem; font-weight: 700; }
+.calc-dart strong { font-size: 1.7rem; line-height: 1.2; }
+.calc-dart.ignored { opacity: 0.45; text-decoration: line-through; }
+.calc-equation { font-size: clamp(1.3rem, 5vw, 1.9rem); font-weight: 750; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.calc-equation strong { color: var(--green); }
+.calc-booked { font-size: 1.05rem; font-weight: 700; }
+.calc-booked .bust { color: var(--red); }
+.calc-booked .win { color: var(--gold); }
+.calc-empty { color: var(--muted); font-size: 0.95rem; }
+
 .bubble {
   border-radius: 16px; padding: 14px 16px; background: var(--card2); border: 1px solid var(--line);
   font-size: 1.1rem; font-weight: 600; min-height: 56px;
